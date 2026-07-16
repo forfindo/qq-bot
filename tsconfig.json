@@ -1,0 +1,18 @@
+{
+  "extends": "./tsconfig.compiler.json",
+  "references": [
+    {
+      "path": "./packages/agentic-rag"
+    },
+    {
+      "path": "./packages/bot"
+    },
+    {
+      "path": "./packages/easy-icq"
+    },
+    {
+      "path": "./packages/openchat"
+    }
+  ],
+  "files": []
+}
