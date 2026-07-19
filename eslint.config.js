@@ -46,7 +46,8 @@ export default defineConfig(
   {
     rules: {
       ...prettierConfig.rules,
-      curly: ['error', 'all']
+      curly: ['error', 'all'],
+      '@typescript-eslint/ban-ts-comment': 'off'
     }
   }
 );

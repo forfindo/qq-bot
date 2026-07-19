@@ -1,14 +1,14 @@
 import { Config } from '@/config';
 import type { SchemaMessage } from '@/schema/session';
 import { Context, Effect, Layer, Result, Schema } from 'effect';
-import { create } from '@/utils/log';
+import { Log } from '@/utils';
 
 const MAX_BASE64_BYTES = 5 * 1024 * 1024;
 const MAX_WIDTH = 2000;
 const MAX_HEIGHT = 2000;
 const AUTO_RESIZE = true;
 const JPEG_QUALITIES = [80, 85, 70, 55, 40];
-const log = create();
+const log = Log.create();
 
 export class ResizerUnavailableError extends Schema.TaggedErrorClass<ResizerUnavailableError>()('ImageResizerUnavailableError', {}) {
   override get message() {
