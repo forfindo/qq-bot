@@ -1,4 +1,7 @@
+import { Log } from '@/utils';
 import * as process from 'node:process';
+
+const log = Log.create();
 
 const StaticFlag = {
   CONFIG_DIR: process.env['CONFIG_DIR'],
@@ -12,14 +15,25 @@ const StaticFlag = {
 
 type STAKey = keyof typeof StaticFlag;
 
-export const Flag = {
+export const Flag = new Proxy({
   // Static variable
   ...StaticFlag,
   // Dynamic variable
   get TEST() {
     return process.env['TEST'];
   }
-};
+}, {
+  get(target, key, receiver): string | undefined {
+    if (Object.hasOwn(target, key)) {
+      return Reflect.get(target, key, receiver) as string | undefined;
+    }
+    return process.env[key.toString()];
+  },
+  set(target, key) {
+    log.warn(`Flag key: ${key.toString()} not recommended to modify. If you need to modify environment variables, please use setFlag`);
+    return false;
+  }
+});
 
 export type FlagKey = keyof typeof Flag;
 

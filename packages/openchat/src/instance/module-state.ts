@@ -32,7 +32,7 @@ export const make = <A, E = never, R = never>(
   });
 };
 
-const get = <A, E, R>(self: ModuleState<A, E, R>) =>
+export const get = <A, E, R>(self: ModuleState<A, E, R>) =>
   Effect.gen(function* () {
     return yield* ScopedCache.get(self.cache, yield* uid);
   });

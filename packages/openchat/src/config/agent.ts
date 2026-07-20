@@ -34,7 +34,7 @@ export const load = Effect.fn('ConfigAgent.load')(function* (dir: string) {
       continue;
     }
 
-    const patterns = ['/.opencode/agent/', '/.opencode/agents/', '/agent/', '/agents/'];
+    const patterns = ['/.openchat/agent/', '/.openchat/agents/', '/agent/', '/agents/'];
     const name = configEntryNameFromPath(item, patterns);
 
     const config = {

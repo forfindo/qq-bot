@@ -36,7 +36,7 @@ export const load = Effect.fn('ConfigCommand.load')(function* (dir: string) {
       continue;
     }
 
-    const patterns = ['/.opencode/command/', '/.opencode/commands/', '/command/', '/commands/'];
+    const patterns = ['/.openchat/command/', '/.openchat/commands/', '/command/', '/commands/'];
     const name = configEntryNameFromPath(item, patterns);
 
     const config = {

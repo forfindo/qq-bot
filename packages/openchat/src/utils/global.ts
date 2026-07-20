@@ -3,6 +3,7 @@ import fs from 'fs/promises';
 import os from 'os';
 import { Context, Layer } from 'effect';
 import { Flag } from '@/flag';
+import { isRecord } from '@/utils/type-guard';
 
 const app = 'openchat';
 const basePath = path.resolve('.', app);
@@ -17,7 +18,6 @@ const paths = {
     return Flag.TEST_HOME ?? os.homedir();
   },
   data,
-  basePath,
   bin: path.join(cache, 'bin'),
   log: path.join(data, 'log'),
   repos: path.join(data, 'repos'),
@@ -25,6 +25,36 @@ const paths = {
   config,
   state,
   tmp
+};
+
+const ensureGitignore = () => {
+  const gitignore = path.resolve('.', '.gitignore');
+  return fs
+    .readFile(gitignore, 'utf-8')
+    .then(
+      text => {
+        const lines = text.split('\n').map(item => item.trim());
+        if (!lines.includes('.openchat')) {
+          lines.push('.openchat');
+        }
+        if (!lines.includes('openchat')) {
+          lines.push('openchat');
+        }
+        return lines.join('\n');
+      },
+      (err: unknown) => {
+        if (isRecord(err) && err.code === 'ENOENT') {
+          return ['.openchat', 'openchat', '\n'].join('\n');
+        } else {
+          throw new Error('ensureGitignore readFile error', {
+            cause: err
+          });
+        }
+      }
+    )
+    .then(text => {
+      return fs.writeFile(gitignore, text, 'utf-8');
+    });
 };
 
 export const Path = paths;
@@ -36,10 +66,12 @@ await Promise.all([
   fs.mkdir(Path.tmp, { recursive: true }),
   fs.mkdir(Path.log, { recursive: true }),
   fs.mkdir(Path.bin, { recursive: true }),
-  fs.mkdir(Path.repos, { recursive: true })
+  fs.mkdir(Path.repos, { recursive: true }),
+  ensureGitignore()
 ]);
 
-export class Service extends Context.Service<Service, Interface>()('@openchat/Global') {}
+export class Service extends Context.Service<Service, Interface>()('@openchat/Global') {
+}
 
 export interface Interface {
   readonly home: string;

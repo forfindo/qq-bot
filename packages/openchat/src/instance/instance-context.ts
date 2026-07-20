@@ -1,9 +1,10 @@
+import { AppFileSystem } from '@/file-system';
 import { LocalContext } from '@/utils';
 import { Effect } from 'effect';
+import path from 'path';
 
 export interface InstanceContext {
-  uid: string;
-  directory: string;
+  readonly uid: string;
 }
 
 const context = LocalContext.create<InstanceContext>('instance');
@@ -14,13 +15,6 @@ export const Instance = {
   },
   get uid() {
     return context.use().uid;
-  },
-  get directory() {
-    // const dir = path.resolve('./.opencode', Instance.uid);
-    // if (!fs.existsSync(dir)) {
-    //   fs.mkdirSync(dir, { recursive: true });
-    // }
-    return context.use().directory;
   },
 
   /**
@@ -46,4 +40,9 @@ export const InstanceContext = Effect.sync(() => Instance.current);
 
 export const uid = Effect.map(InstanceContext, ctx => ctx.uid);
 
-export const directory = Effect.map(InstanceContext, ctx => ctx.directory);
+export const directory = Effect.gen(function* () {
+  const fs = yield* AppFileSystem.Service;
+  const dir = path.resolve('./.openchat', Instance.uid);
+  yield* fs.ensureDir(dir);
+  return dir;
+});

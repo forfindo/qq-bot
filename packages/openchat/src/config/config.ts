@@ -150,10 +150,9 @@ export const layer = Layer.effect(
           yield* fs.writeWithDirs(file, JSON.stringify({ $schema: 'https://opencode.ai/config.json' }, null, 2)).pipe(Effect.catch(() => Effect.void));
         }
       }
-      yield* ensureGitignore(Global.Path.basePath);
       result = mergeDeep(result, yield* loadFile(path.join(Global.Path.config, 'config.json')));
-      result = mergeDeep(result, yield* loadFile(path.join(Global.Path.config, 'opencode.json')));
-      result = mergeDeep(result, yield* loadFile(path.join(Global.Path.config, 'opencode.jsonc')));
+      result = mergeDeep(result, yield* loadFile(path.join(Global.Path.config, 'openchat.json')));
+      result = mergeDeep(result, yield * loadFile(path.join(Global.Path.config, 'openchat.jsonc')));
 
       return result;
     });
@@ -166,19 +165,6 @@ export const layer = Layer.effect(
       ),
       Duration.infinity
     );
-
-    const ensureGitignore = Effect.fn('Config.ensureGitignore')(function* (dir: string) {
-      const gitignore = path.join(dir, '.gitignore');
-      const hasIgnore = yield* fs.existsSafe(gitignore);
-      if (!hasIgnore) {
-        yield* fs.writeFileString(gitignore, '*').pipe(
-          Effect.catchIf(
-            e => e.reason._tag === 'PermissionDenied',
-            () => Effect.void
-          )
-        );
-      }
-    });
 
     const loadInstanceState = Effect.fn('Config.loadInstanceState')(
       function* (ctx: InstanceContext.InstanceContext) {
@@ -193,8 +179,8 @@ export const layer = Layer.effect(
           if (value.type === 'wellknown') {
             const url = key.replace(/\/+$/, '');
             setFlag(value.key, value.token);
-            log.debug('fetching remote config', { url: `${url}/.well-known/opencode` });
-            const response = yield* Effect.promise(() => fetch(`${url}/.well-known/opencode`));
+            log.debug('fetching remote config', { url: `${url}/.well-known/openchat` });
+            const response = yield * Effect.promise(() => fetch(`${url}/.well-known/openchat`));
             if (!response.ok) {
               throw new Error(`failed to fetch remote config from ${url}: ${response.status}`);
             }
@@ -205,7 +191,7 @@ export const layer = Layer.effect(
             const remote = yield* substituteWellKnownRemoteConfig({
               value: wellknown.remote_config,
               dir: url,
-              source: `${url}/.well-known/opencode`
+              source: `${url}/.well-known/openchat`
             });
             const fetchedConfig = remote
               ? ((yield* Effect.promise(async () => {
@@ -222,7 +208,7 @@ export const layer = Layer.effect(
             if (!remoteConfig.$schema) {
               remoteConfig.$schema = 'https://opencode.ai/config.json';
             }
-            const source = `${url}/.well-known/opencode`;
+            const source = `${url}/.well-known/openchat`;
             const next = yield* loadConfig(JSON.stringify(remoteConfig), {
               dir: path.dirname(source),
               source
@@ -238,10 +224,10 @@ export const layer = Layer.effect(
         result.agent = result.agent || {};
         result.mode = result.mode || {};
 
-        const dirs = unique([Global.Path.config, ctx.directory, ...(Flag.CONFIG_DIR ? [Flag.CONFIG_DIR] : [])]);
+        const dirs = unique([Global.Path.config, yield* InstanceContext.directory, ...(Flag.CONFIG_DIR ? [Flag.CONFIG_DIR] : [])]);
 
         if (Flag.CONFIG_DIR) {
-          log.debug('loading config from OPENCODE_CONFIG_DIR', { path: Flag.CONFIG_DIR });
+          log.debug('loading config from CONFIG_DIR', { path: Flag.CONFIG_DIR });
         }
 
         for (const dir of dirs) {
@@ -255,21 +241,19 @@ export const layer = Layer.effect(
             }
           }
 
-          yield* ensureGitignore(dir).pipe(Effect.orDie);
-
           result.command = mergeDeep(result.command ?? {}, yield* ConfigCommand.load(dir));
           result.agent = mergeDeep(result.agent ?? {}, yield* ConfigAgent.load(dir));
           result.agent = mergeDeep(result.agent ?? {}, yield* ConfigAgent.loadMode(dir));
         }
 
         if (Flag.CONFIG_CONTENT) {
-          const source = 'OPENCODE_CONFIG_CONTENT';
+          const source = 'CONFIG_CONTENT';
           const next = yield* loadConfig(Flag.CONFIG_CONTENT, {
             dir: ctx.uid,
             source
           });
           merge(next);
-          log.debug('loaded custom config from OPENCODE_CONFIG_CONTENT');
+          log.debug('loaded custom config from CONFIG_CONTENT');
         }
 
         for (const [name, mode] of Object.entries(result.mode ?? {})) {
@@ -392,3 +376,5 @@ export const layer = Layer.effect(
     });
   })
 );
+
+export const defaultLayer = layer.pipe(Layer.provide(Auth.defaultLayer), Layer.provide(AppFileSystem.defaultLayer));
