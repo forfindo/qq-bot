@@ -25,5 +25,14 @@ export const WellKnown = Schema.Struct({
 });
 export type WellKnown = Schema.Schema.Type<typeof WellKnown>;
 
-export const Info = Schema.Union([Oauth, Api, WellKnown]).annotate({ discriminator: 'type', identifier: 'Auth' });
+export const Info = Schema.Union([Oauth, Api, WellKnown]).annotate({
+  discriminator: 'type',
+  identifier: 'Auth'
+});
 export type Info = Schema.Schema.Type<typeof Info>;
+
+// Error
+export class AuthError extends Schema.TaggedErrorClass<AuthError>()('AuthError', {
+  message: Schema.String,
+  cause: Schema.optional(Schema.Defect)
+}) {}

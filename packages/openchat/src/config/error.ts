@@ -1,4 +1,4 @@
-import { NamedError } from '@/utils';
+import { AppError } from '@/utils';
 import { Schema } from 'effect';
 
 const Issue = Schema.StructWithRest(
@@ -9,13 +9,18 @@ const Issue = Schema.StructWithRest(
   [Schema.Record(Schema.String, Schema.Unknown)]
 );
 
-export const JsonError = NamedError.create('ConfigJsonError', {
+export const JsonError = AppError.NamedError.create('ConfigJsonError', {
   path: Schema.String,
   message: Schema.optional(Schema.String)
 });
 
-export const InvalidError = NamedError.create('ConfigInvalidError', {
+export const InvalidError = AppError.NamedError.create('ConfigInvalidError', {
   path: Schema.String,
   issues: Schema.optional(Schema.Array(Issue)),
   message: Schema.optional(Schema.String)
+});
+
+export const FrontmatterError = AppError.NamedError.create('ConfigFrontmatterError', {
+  path: Schema.String,
+  message: Schema.String
 });

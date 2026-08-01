@@ -2,16 +2,9 @@ import { NodeFileSystem } from '@effect/platform-node';
 import { dirname, join, relative, resolve as pathResolve } from 'path';
 import { realpathSync } from 'fs';
 import * as NFS from 'fs/promises';
-import { Effect, FileSystem, Layer, Schema, Context } from 'effect';
-import type { PlatformError } from 'effect/PlatformError';
+import { Effect, FileSystem, Layer, Context } from 'effect';
 import { Glob } from '@/utils';
-
-export class FileSystemError extends Schema.TaggedErrorClass<FileSystemError>()('FileSystemError', {
-  method: Schema.String,
-  cause: Schema.optional(Schema.Defect)
-}) {}
-
-export type Error = PlatformError | FileSystemError;
+import { SchemaFs } from '@/schema';
 
 export interface DirEntry {
   readonly name: string;
@@ -22,16 +15,39 @@ export interface Interface extends FileSystem.FileSystem {
   readonly isDir: (path: string) => Effect.Effect<boolean>;
   readonly isFile: (path: string) => Effect.Effect<boolean>;
   readonly existsSafe: (path: string) => Effect.Effect<boolean>;
-  readonly readFileStringSafe: (path: string) => Effect.Effect<string | undefined, Error>;
-  readonly readJson: (path: string) => Effect.Effect<unknown, Error>;
-  readonly writeJson: (path: string, data: unknown, mode?: number) => Effect.Effect<void, Error>;
-  readonly ensureDir: (path: string) => Effect.Effect<void, Error>;
-  readonly writeWithDirs: (path: string, content: string | Uint8Array, mode?: number) => Effect.Effect<void, Error>;
-  readonly readDirectoryEntries: (path: string) => Effect.Effect<DirEntry[], Error>;
-  readonly findUp: (target: string, start: string, stop?: string) => Effect.Effect<string[], Error>;
-  readonly up: (options: { targets: string[]; start: string; stop?: string }) => Effect.Effect<string[], Error>;
-  readonly globUp: (pattern: string, start: string, stop?: string) => Effect.Effect<string[], Error>;
-  readonly glob: (pattern: string, options?: Glob.Options) => Effect.Effect<string[], Error>;
+  readonly readFileStringSafe: (path: string) => Effect.Effect<string | undefined, SchemaFs.Error>;
+  readonly readJson: (path: string) => Effect.Effect<unknown, SchemaFs.Error>;
+  readonly writeJson: (
+    path: string,
+    data: unknown,
+    mode?: number
+  ) => Effect.Effect<void, SchemaFs.Error>;
+  readonly ensureDir: (path: string) => Effect.Effect<void, SchemaFs.Error>;
+  readonly writeWithDirs: (
+    path: string,
+    content: string | Uint8Array,
+    mode?: number
+  ) => Effect.Effect<void, SchemaFs.Error>;
+  readonly readDirectoryEntries: (path: string) => Effect.Effect<DirEntry[], SchemaFs.Error>;
+  readonly findUp: (
+    target: string,
+    start: string,
+    stop?: string
+  ) => Effect.Effect<string[], SchemaFs.Error>;
+  readonly up: (options: {
+    targets: string[];
+    start: string;
+    stop?: string;
+  }) => Effect.Effect<string[], SchemaFs.Error>;
+  readonly globUp: (
+    pattern: string,
+    start: string,
+    stop?: string
+  ) => Effect.Effect<string[], SchemaFs.Error>;
+  readonly glob: (
+    pattern: string,
+    options?: Glob.Options
+  ) => Effect.Effect<string[], SchemaFs.Error>;
 }
 
 export class Service extends Context.Service<Service, Interface>()('@openchat/FileSystem') {}
@@ -46,7 +62,9 @@ export const layer = Layer.effect(
     });
 
     const readFileStringSafe = Effect.fn('FileSystem.readFileStringSafe')(function* (path: string) {
-      return yield* fs.readFileString(path).pipe(Effect.catchReason('PlatformError', 'NotFound', () => Effect.succeed(undefined)));
+      return yield* fs
+        .readFileString(path)
+        .pipe(Effect.catchReason('PlatformError', 'NotFound', () => Effect.succeed(void 0)));
     });
 
     const isDir = Effect.fn('FileSystem.isDir')(function* (path: string) {
@@ -59,18 +77,26 @@ export const layer = Layer.effect(
       return info?.type === 'File';
     });
 
-    const readDirectoryEntries = Effect.fn('FileSystem.readDirectoryEntries')(function* (dirPath: string) {
+    const readDirectoryEntries = Effect.fn('FileSystem.readDirectoryEntries')(function* (
+      dirPath: string
+    ) {
       return yield* Effect.tryPromise({
         try: async () => {
           const entries = await NFS.readdir(dirPath, { withFileTypes: true });
           return entries.map(
             (e): DirEntry => ({
               name: e.name,
-              type: e.isDirectory() ? 'directory' : e.isSymbolicLink() ? 'symlink' : e.isFile() ? 'file' : 'other'
+              type: e.isDirectory()
+                ? 'directory'
+                : e.isSymbolicLink()
+                  ? 'symlink'
+                  : e.isFile()
+                    ? 'file'
+                    : 'other'
             })
           );
         },
-        catch: cause => new FileSystemError({ method: 'readDirectoryEntries', cause })
+        catch: cause => new SchemaFs.FileSystemError({ method: 'readDirectoryEntries', cause })
       });
     });
 
@@ -79,7 +105,11 @@ export const layer = Layer.effect(
       return JSON.parse(text) as unknown;
     });
 
-    const writeJson = Effect.fn('FileSystem.writeJson')(function* (path: string, data: unknown, mode?: number) {
+    const writeJson = Effect.fn('FileSystem.writeJson')(function* (
+      path: string,
+      data: unknown,
+      mode?: number
+    ) {
       const content = JSON.stringify(data, null, 2);
       yield* fs.writeFileString(path, content);
       if (mode) {
@@ -91,8 +121,15 @@ export const layer = Layer.effect(
       yield* fs.makeDirectory(path, { recursive: true });
     });
 
-    const writeWithDirs = Effect.fn('FileSystem.writeWithDirs')(function* (path: string, content: string | Uint8Array, mode?: number) {
-      const write = typeof content === 'string' ? fs.writeFileString(path, content) : fs.writeFile(path, content);
+    const writeWithDirs = Effect.fn('FileSystem.writeWithDirs')(function* (
+      path: string,
+      content: string | Uint8Array,
+      mode?: number
+    ) {
+      const write =
+        typeof content === 'string'
+          ? fs.writeFileString(path, content)
+          : fs.writeFile(path, content);
 
       yield* write.pipe(
         Effect.catchIf(
@@ -112,11 +149,15 @@ export const layer = Layer.effect(
     const glob = Effect.fn('FileSystem.glob')(function* (pattern: string, options?: Glob.Options) {
       return yield* Effect.tryPromise({
         try: () => Glob.scan(pattern, options),
-        catch: cause => new FileSystemError({ method: 'glob', cause })
+        catch: cause => new SchemaFs.FileSystemError({ method: 'glob', cause })
       });
     });
 
-    const findUp = Effect.fn('FileSystem.findUp')(function* (target: string, start: string, stop?: string) {
+    const findUp = Effect.fn('FileSystem.findUp')(function* (
+      target: string,
+      start: string,
+      stop?: string
+    ) {
       const result: string[] = [];
       let current = start;
       while (true) {
@@ -136,7 +177,11 @@ export const layer = Layer.effect(
       return result;
     });
 
-    const up = Effect.fn('FileSystem.up')(function* (options: { targets: string[]; start: string; stop?: string }) {
+    const up = Effect.fn('FileSystem.up')(function* (options: {
+      targets: string[];
+      start: string;
+      stop?: string;
+    }) {
       const result: string[] = [];
       let current = options.start;
       while (true) {
@@ -158,11 +203,20 @@ export const layer = Layer.effect(
       return result;
     });
 
-    const globUp = Effect.fn('FileSystem.globUp')(function* (pattern: string, start: string, stop?: string) {
+    const globUp = Effect.fn('FileSystem.globUp')(function* (
+      pattern: string,
+      start: string,
+      stop?: string
+    ) {
       const result: string[] = [];
       let current = start;
       while (true) {
-        const matches = yield* glob(pattern, { cwd: current, absolute: true, include: 'file', dot: true }).pipe(Effect.catch(() => Effect.succeed([] as string[])));
+        const matches = yield* glob(pattern, {
+          cwd: current,
+          absolute: true,
+          include: 'file',
+          dot: true
+        }).pipe(Effect.catch(() => Effect.succeed([] as string[])));
         result.push(...matches);
         if (stop === current) {
           break;

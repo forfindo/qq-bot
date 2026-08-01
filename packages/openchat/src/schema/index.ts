@@ -1,8 +1,29 @@
-export * as SchemaAttachment from './attachment';
-export * as SchemaCommon from './common';
-export * as SchemaConfig from './config';
-export * as SchemaMCP from './mcp';
-export * as SchemaAuth from './auth';
-export * as SchemaAgent from './agent';
-export * as SchemaPermission from './permission';
-export * as SchemaCommand from './command';
+import * as SchemaAttachment from './attachment';
+import * as SchemaCommon from './common';
+import * as SchemaConfig from './config';
+import * as SchemaMCP from './mcp';
+import * as SchemaAuth from './auth';
+import * as SchemaAgent from './agent';
+import * as SchemaPermission from './permission';
+import * as SchemaCommand from './command';
+import * as SchemaProvider from './provider';
+import * as SchemaFs from './file-system';
+import * as SchemaImage from './image';
+import * as SchemaModels from './models-dev';
+import * as SchemaNpm from './npm';
+
+export {
+  SchemaAttachment,
+  SchemaFs,
+  SchemaImage,
+  SchemaCommon,
+  SchemaProvider,
+  SchemaPermission,
+  SchemaConfig,
+  SchemaMCP,
+  SchemaAuth,
+  SchemaCommand,
+  SchemaAgent,
+  SchemaModels,
+  SchemaNpm
+};

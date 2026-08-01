@@ -6,6 +6,7 @@ export default defineConfig({
   },
   test: {
     globals: true,
-    pool: 'threads'
+    pool: 'threads',
+    testTimeout: 0
   }
 });

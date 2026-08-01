@@ -1,1 +1,3 @@
-export * as Image from './image';
+import * as Image from './image';
+
+export { Image };

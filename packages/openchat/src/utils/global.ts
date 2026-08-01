@@ -34,17 +34,17 @@ const ensureGitignore = () => {
     .then(
       text => {
         const lines = text.split('\n').map(item => item.trim());
-        if (!lines.includes('.openchat')) {
-          lines.push('.openchat');
+        if (!lines.includes('/.openchat')) {
+          lines.push('/.openchat');
         }
-        if (!lines.includes('openchat')) {
-          lines.push('openchat');
+        if (!lines.includes('/openchat')) {
+          lines.push('/openchat');
         }
         return lines.join('\n');
       },
       (err: unknown) => {
         if (isRecord(err) && err.code === 'ENOENT') {
-          return ['.openchat', 'openchat', '\n'].join('\n');
+          return ['/.openchat', '/openchat', '\n'].join('\n');
         } else {
           throw new Error('ensureGitignore readFile error', {
             cause: err
@@ -70,8 +70,7 @@ await Promise.all([
   ensureGitignore()
 ]);
 
-export class Service extends Context.Service<Service, Interface>()('@openchat/Global') {
-}
+export class Service extends Context.Service<Service, Interface>()('@openchat/Global') {}
 
 export interface Interface {
   readonly home: string;
@@ -104,4 +103,5 @@ export const layer = Layer.succeed(Service, Service.of(make()));
 
 export const defaultLayer = layer;
 
-export const layerWith = (input: Partial<Interface>) => Layer.succeed(Service, Service.of(make(input)));
+export const layerWith = (input: Partial<Interface>) =>
+  Layer.succeed(Service, Service.of(make(input)));

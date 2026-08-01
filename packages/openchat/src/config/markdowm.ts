@@ -1,7 +1,7 @@
 import { AppFileSystem } from '@/file-system';
-import { Effect, Schema } from 'effect';
+import { Effect } from 'effect';
 import matter from 'gray-matter';
-import { NamedError } from '@/utils';
+import { FrontmatterError } from '@/config/error';
 
 // other coding agents like claude code allow invalid yaml in their
 // frontmatter, we need to fallback to a more permissive parser for those cases
@@ -39,7 +39,13 @@ export function fallbackSanitization(content: string): string {
     const value = kvMatch[2].trim();
 
     // skip if value is empty, already quoted, or uses block scalar
-    if (value === '' || value === '>' || value === '|' || value.startsWith('"') || value.startsWith("'")) {
+    if (
+      value === '' ||
+      value === '>' ||
+      value === '|' ||
+      value.startsWith('"') ||
+      value.startsWith("'")
+    ) {
       result.push(line);
       continue;
     }
@@ -78,9 +84,4 @@ export const parse = Effect.fn('ConfigMarkdown.parse')(function* (filePath: stri
       })
     )
   );
-});
-
-export const FrontmatterError = NamedError.create('ConfigFrontmatterError', {
-  path: Schema.String,
-  message: Schema.String
 });

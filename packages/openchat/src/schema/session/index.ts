@@ -1,1 +1,3 @@
-export * as SchemaMessage from './message';
+import * as SchemaMessage from './message';
+
+export { SchemaMessage };

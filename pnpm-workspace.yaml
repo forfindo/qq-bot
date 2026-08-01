@@ -2,5 +2,8 @@ packages:
   - packages/**/*
 
 allowBuilds:
-  msgpackr-extract: true
   esbuild: true
+  msgpackr-extract: true
+
+patchedDependencies:
+  '@types/npmcli__config@6.0.4': patches/@types__npmcli__config@6.0.4.patch

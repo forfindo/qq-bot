@@ -35,7 +35,7 @@ export const substitute = Effect.fnUntraced(function* (input: SubstituteInput) {
 
   const missing = input.missing ?? 'error';
   const text = input.text.replace(/\{env:([^}]+)\}/g, (_, varName: string) => {
-    return Flag[varName as FlagKey] || '';
+    return Flag[varName as FlagKey]?.toString() || '';
   });
 
   const fileMatches = Array.from(text.matchAll(/\{file:[^}]+\}/g));

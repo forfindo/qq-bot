@@ -1,2 +1,4 @@
-export * as InstanceContext from './instance-context';
-export * as ModuleState from './module-state';
+import * as InstanceContext from './instance-context';
+import * as ModuleState from './module-state';
+
+export { InstanceContext, ModuleState };

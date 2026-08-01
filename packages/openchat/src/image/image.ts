@@ -1,6 +1,7 @@
 import { Config } from '@/config';
 import type { SchemaMessage } from '@/schema/session';
-import { Context, Effect, Layer, Result, Schema } from 'effect';
+import { Context, Effect, Layer, Result } from 'effect';
+import { SchemaImage } from '@/schema';
 import { Log } from '@/utils';
 
 const MAX_BASE64_BYTES = 5 * 1024 * 1024;
@@ -10,43 +11,10 @@ const AUTO_RESIZE = true;
 const JPEG_QUALITIES = [80, 85, 70, 55, 40];
 const log = Log.create();
 
-export class ResizerUnavailableError extends Schema.TaggedErrorClass<ResizerUnavailableError>()('ImageResizerUnavailableError', {}) {
-  override get message() {
-    return 'Image resizer is unavailable';
-  }
-}
-
-export class InvalidDataUrlError extends Schema.TaggedErrorClass<InvalidDataUrlError>()('ImageInvalidDataUrlError', {
-  url: Schema.String
-}) {
-  override get message() {
-    return 'Image URL must be a base64 data URL';
-  }
-}
-
-export class DecodeError extends Schema.TaggedErrorClass<DecodeError>()('ImageDecodeError', {}) {
-  override get message() {
-    return 'Image could not be decoded';
-  }
-}
-
-export class SizeError extends Schema.TaggedErrorClass<SizeError>()('ImageSizeError', {
-  bytes: Schema.Number,
-  max: Schema.Number,
-  width: Schema.Number,
-  height: Schema.Number,
-  max_width: Schema.Number,
-  max_height: Schema.Number
-}) {
-  override get message() {
-    return `Image ${this.width}x${this.height} with base64 size ${this.bytes} exceeds configured limits and could not be resized below ${this.max_width}x${this.max_height}/${this.max} bytes`;
-  }
-}
-
-export type Error = ResizerUnavailableError | InvalidDataUrlError | DecodeError | SizeError;
-
 export interface Interface {
-  readonly normalize: (input: SchemaMessage.FilePart) => Effect.Effect<SchemaMessage.FilePart, Error>;
+  readonly normalize: (
+    input: SchemaMessage.FilePart
+  ) => Effect.Effect<SchemaMessage.FilePart, Error>;
 }
 
 export class Service extends Context.Service<Service, Interface>()('@openchat/Image') {}
@@ -63,7 +31,7 @@ export const layer = Layer.effect(
           return sharp;
         }),
         Effect.tapError(error => Effect.sync(() => log.warn('failed to load sharp', { error }))),
-        Effect.mapError(() => new ResizerUnavailableError())
+        Effect.mapError(() => new SchemaImage.ResizerUnavailableError())
       )
     );
 
@@ -76,7 +44,7 @@ export const layer = Layer.effect(
         maxBase64Bytes: image?.max_base64_bytes ?? MAX_BASE64_BYTES
       };
       if (!input.url.startsWith('data:') || !input.url.includes(';base64,')) {
-        return yield* new InvalidDataUrlError({ url: input.url });
+        return yield* new SchemaImage.InvalidDataUrlError({ url: input.url });
       }
 
       const base64 = input.url.slice(input.url.indexOf(';base64,') + ';base64,'.length);
@@ -89,16 +57,20 @@ export const layer = Layer.effect(
         try: () => originImage.metadata(),
         catch: error => {
           log.warn('failed to decode image', { error });
-          return new DecodeError();
+          return new SchemaImage.DecodeError();
         }
       });
 
       const { width: originalWidth, height: originalHeight } = originMetadata;
-      if (originalWidth <= info.maxWidth && originalHeight <= info.maxHeight && bytes <= info.maxBase64Bytes) {
+      if (
+        originalWidth <= info.maxWidth &&
+        originalHeight <= info.maxHeight &&
+        bytes <= info.maxBase64Bytes
+      ) {
         return input;
       }
       if (!info.autoResize) {
-        return yield* new SizeError({
+        return yield* new SchemaImage.SizeError({
           bytes,
           max: info.maxBase64Bytes,
           width: originalWidth,
@@ -109,7 +81,9 @@ export const layer = Layer.effect(
       }
 
       const scale = Math.min(1, info.maxWidth / originalWidth, info.maxHeight / originalHeight);
-      for (const size of Array.from({ length: 32 }).reduce<Array<{ width: number; height: number }>>(acc => {
+      for (const size of Array.from({ length: 32 }).reduce<
+        Array<{ width: number; height: number }>
+      >(acc => {
         const previous = acc.at(-1) ?? {
           width: Math.max(1, Math.round(originalWidth * scale)),
           height: Math.max(1, Math.round(originalHeight * scale))
@@ -121,7 +95,9 @@ export const layer = Layer.effect(
                 width: previous.width === 1 ? 1 : Math.max(1, Math.floor(previous.width * 0.75)),
                 height: previous.height === 1 ? 1 : Math.max(1, Math.floor(previous.height * 0.75))
               };
-        return acc.some(item => item.width === next.width && item.height === next.height) ? acc : [...acc, next];
+        return acc.some(item => item.width === next.width && item.height === next.height)
+          ? acc
+          : [...acc, next];
       }, [])) {
         const resized = originImage.clone().resize(size.width, size.height, {
           fit: 'inside',
@@ -185,7 +161,7 @@ export const layer = Layer.effect(
         }
       }
 
-      return yield* new SizeError({
+      return yield* new SchemaImage.SizeError({
         bytes,
         max: info.maxBase64Bytes,
         width: originalWidth,

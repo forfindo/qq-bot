@@ -12,6 +12,26 @@ export default defineConfig(
     ...item
   })),
   {
+    files: ['**/*.ts'],
+    plugins: {
+      '@typescript-eslint': tseslint.plugin
+    },
+    rules: {
+      '@typescript-eslint/ban-ts-comment': 'off',
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          // 允许名称以下划线 _ 开头的变量不使用
+          varsIgnorePattern: '^_',
+          // 允许函数参数以 _ 开头不使用
+          argsIgnorePattern: '^_',
+          // 解构出来的变量也生效
+          caughtErrorsIgnorePattern: '^_'
+        }
+      ]
+    }
+  },
+  {
     languageOptions: {
       globals: globals.node,
       parserOptions: {
@@ -46,8 +66,7 @@ export default defineConfig(
   {
     rules: {
       ...prettierConfig.rules,
-      curly: ['error', 'all'],
-      '@typescript-eslint/ban-ts-comment': 'off'
+      curly: ['error', 'all']
     }
   }
 );

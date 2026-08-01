@@ -1,0 +1,15 @@
+diff --git a/index.d.ts b/index.d.ts
+index 8053bce2369b4228022d1c2132fb6bed802804e9..1173394471c47f054a81af4824f1a9f16bd6e845 100644
+--- a/index.d.ts
++++ b/index.d.ts
+@@ -234,6 +234,10 @@ declare namespace Config {
+         argv?: string[];
+         execPath?: string;
+         platform?: NodeJS.Platform;
++        /** Config keys that can be scoped to a registry via nerf-dart prefix (e.g. //registry.npmjs.org/:_authToken) */
++        nerfDarts?: string[];
++        /** Whether to log warnings, defaults to true */
++        warn?: boolean;
+     }
+ 
+     type ConfFileType = "project" | "user" | "global";

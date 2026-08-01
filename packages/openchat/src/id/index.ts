@@ -1,1 +1,3 @@
-export * as Identifier from './id';
+import * as Identifier from './id';
+
+export { Identifier };

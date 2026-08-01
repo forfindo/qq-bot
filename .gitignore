@@ -6,5 +6,5 @@ dist
 packages/*
 !packages/openchat
 
-.openchat
-openchat
+/.openchat
+/openchat

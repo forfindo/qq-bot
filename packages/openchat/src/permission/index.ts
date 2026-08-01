@@ -1,1 +1,3 @@
-export * as BashArity from './arity';
+import * as BashArity from './arity';
+
+export { BashArity };
