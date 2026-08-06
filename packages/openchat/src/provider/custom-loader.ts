@@ -114,7 +114,7 @@ function selectAzureLanguageModel(sdk: SDKType, modelID: string, useChat: boolea
 }
 
 function useLanguageModel(sdk: unknown): sdk is SDKType<'languageModel'> {
-  return TypeGuard.isRecord(sdk) && sdk.responses === undefined && sdk.chat === undefined;
+  return TypeGuard.isRecord(sdk) && sdk.responses === void 0 && sdk.chat === void 0;
 }
 
 export function custom(dep: CustomDep): Record<string, CustomLoader> {
@@ -196,7 +196,7 @@ export function custom(dep: CustomDep): Record<string, CustomLoader> {
       const resource = iife(() => {
         return [
           provider.options?.resourceName as string,
-          auth?.type === 'api' ? auth.metadata?.resourceName : undefined,
+          auth?.type === 'api' ? auth.metadata?.resourceName : void 0,
           env['AZURE_RESOURCE_NAME']
         ].find(name => typeof name === 'string' && name.trim() !== '');
       });
@@ -246,7 +246,7 @@ export function custom(dep: CustomDep): Record<string, CustomLoader> {
         options: {
           baseURL: resourceName
             ? `https://${resourceName}.cognitiveservices.azure.com/openai`
-            : undefined
+            : void 0
         }
       });
     },
@@ -278,7 +278,7 @@ export function custom(dep: CustomDep): Record<string, CustomLoader> {
           process.env.AWS_BEARER_TOKEN_BEDROCK = auth.key;
           return auth.key;
         }
-        return undefined;
+        return void 0;
       });
 
       const awsWebIdentityTokenFile = env['AWS_WEB_IDENTITY_TOKEN_FILE'];
@@ -317,8 +317,7 @@ export function custom(dep: CustomDep): Record<string, CustomLoader> {
 
       // Add custom endpoint if specified (endpoint takes precedence over baseURL)
       const endpoint = (providerConfig?.options?.endpoint ?? providerConfig?.options?.baseURL) as
-        | string
-        | undefined;
+        string | undefined;
       if (endpoint) {
         providerOptions.baseURL = endpoint;
       }
@@ -563,7 +562,7 @@ export function custom(dep: CustomDep): Record<string, CustomLoader> {
           process.env.AICORE_SERVICE_KEY = auth.key;
           return auth.key;
         }
-        return undefined;
+        return void 0;
       });
       const deploymentId = process.env.AICORE_DEPLOYMENT_ID;
       const resourceGroup = process.env.AICORE_RESOURCE_GROUP;
@@ -607,7 +606,7 @@ export function custom(dep: CustomDep): Record<string, CustomLoader> {
           if (auth?.type === 'api') {
             return auth.key;
           }
-          return undefined;
+          return void 0;
         });
         const token = apiKey ?? dep.get('GITLAB_TOKEN');
 
@@ -637,19 +636,19 @@ export function custom(dep: CustomDep): Record<string, CustomLoader> {
           async getModel(sdk: unknown, modelID: string, options?: Record<string, unknown>) {
             if (modelID.startsWith('duo-workflow-')) {
               const workflowRef =
-                typeof options?.workflowRef === 'string' ? options.workflowRef : undefined;
+                typeof options?.workflowRef === 'string' ? options.workflowRef : void 0;
               // Use the static mapping if it exists, otherwise use duo-workflow with selectedModelRef
               const sdkModelID = isWorkflowModel(modelID) ? modelID : 'duo-workflow';
               const workflowDefinition =
                 typeof options?.workflowDefinition === 'string'
                   ? options.workflowDefinition
-                  : undefined;
+                  : void 0;
               const model = isSDK(sdk, 'workflowChat')
                 ? await sdk.workflowChat(sdkModelID, {
                     featureFlags,
                     workflowDefinition
                   })
-                : undefined;
+                : void 0;
               if (!model) {
                 return Promise.resolve(void 0);
               }
@@ -766,8 +765,7 @@ export function custom(dep: CustomDep): Record<string, CustomLoader> {
       const auth = yield* dep.auth(input.id);
       const env = dep.env();
       const accountId =
-        env['CLOUDFLARE_ACCOUNT_ID'] ||
-        (auth?.type === 'api' ? auth.metadata?.accountId : undefined);
+        env['CLOUDFLARE_ACCOUNT_ID'] || (auth?.type === 'api' ? auth.metadata?.accountId : void 0);
       if (!accountId) {
         return {
           autoload: false,
@@ -787,7 +785,7 @@ export function custom(dep: CustomDep): Record<string, CustomLoader> {
         if (auth?.type === 'api') {
           return auth.key;
         }
-        return undefined;
+        return void 0;
       });
 
       return {
@@ -820,17 +818,15 @@ export function custom(dep: CustomDep): Record<string, CustomLoader> {
       const auth = yield* dep.auth(input.id);
       const env = dep.env();
       const accountId =
-        env['CLOUDFLARE_ACCOUNT_ID'] ||
-        (auth?.type === 'api' ? auth.metadata?.accountId : undefined);
+        env['CLOUDFLARE_ACCOUNT_ID'] || (auth?.type === 'api' ? auth.metadata?.accountId : void 0);
       // The Cloudflare auth prompt stores this value as gatewayId metadata.
       const gateway =
-        env['CLOUDFLARE_GATEWAY_ID'] ||
-        (auth?.type === 'api' ? auth.metadata?.gatewayId : undefined);
+        env['CLOUDFLARE_GATEWAY_ID'] || (auth?.type === 'api' ? auth.metadata?.gatewayId : void 0);
 
       if (!accountId || !gateway) {
         const missing = [
-          !accountId ? 'CLOUDFLARE_ACCOUNT_ID' : undefined,
-          !gateway ? 'CLOUDFLARE_GATEWAY_ID' : undefined
+          !accountId ? 'CLOUDFLARE_ACCOUNT_ID' : void 0,
+          !gateway ? 'CLOUDFLARE_GATEWAY_ID' : void 0
         ].filter((x): x is string => Boolean(x));
         return {
           autoload: false,
@@ -851,7 +847,7 @@ export function custom(dep: CustomDep): Record<string, CustomLoader> {
         if (auth?.type === 'api') {
           return auth.key;
         }
-        return undefined;
+        return void 0;
       });
 
       if (!apiToken) {
@@ -890,7 +886,7 @@ export function custom(dep: CustomDep): Record<string, CustomLoader> {
         accountId,
         gateway,
         apiKey: apiToken,
-        ...(Object.values(opts).some(v => v !== undefined) ? { options: opts } : {})
+        ...(Object.values(opts).some(v => v !== void 0) ? { options: opts } : {})
       });
       const unified = createUnified();
 

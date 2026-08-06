@@ -66,7 +66,8 @@ export default defineConfig(
   {
     rules: {
       ...prettierConfig.rules,
-      curly: ['error', 'all']
+      curly: ['error', 'all'],
+      'no-undefined': 'error'
     }
   }
 );

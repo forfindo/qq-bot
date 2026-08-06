@@ -157,10 +157,10 @@ export async function resolveSDK(model: SchemaProvider.Model, s: State) {
       return url;
     });
 
-    if (baseURL !== undefined) {
+    if (baseURL !== void 0) {
       options['baseURL'] = baseURL;
     }
-    if (options['apiKey'] === undefined && provider.key) {
+    if (options['apiKey'] === void 0 && provider.key) {
       options['apiKey'] = provider.key;
     }
     if (model.headers) {
@@ -190,7 +190,7 @@ export async function resolveSDK(model: SchemaProvider.Model, s: State) {
       const fetchFn = customFetch ?? fetch;
       const opts = init ?? {};
       const chunkAbortCtl =
-        typeof chunkTimeout === 'number' && chunkTimeout > 0 ? new AbortController() : undefined;
+        typeof chunkTimeout === 'number' && chunkTimeout > 0 ? new AbortController() : void 0;
       const signals: AbortSignal[] = [];
 
       if (opts.signal) {
@@ -200,7 +200,7 @@ export async function resolveSDK(model: SchemaProvider.Model, s: State) {
         signals.push(chunkAbortCtl.signal);
       }
       if (
-        options['timeout'] !== undefined &&
+        options['timeout'] !== void 0 &&
         options['timeout'] !== null &&
         options['timeout'] !== false
       ) {

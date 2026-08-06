@@ -18,23 +18,33 @@ class DefaultLog implements ILog {
   }
 
   debug(format: string, params?: Record<string, unknown>): void {
-    console.log(format.replace(/\{(.*?)}/g, (_, name: string) => params?.[name]?.toString() ?? 'unknown'));
+    console.log(
+      format.replace(/\{(.*?)}/g, (_, name: string) => params?.[name]?.toString() ?? 'unknown')
+    );
   }
 
   error(format: string, params?: Record<string, unknown>): void {
-    console.log(format.replace(/\{(.*?)}/g, (_, name: string) => params?.[name]?.toString() ?? 'unknown'));
+    console.log(
+      format.replace(/\{(.*?)}/g, (_, name: string) => params?.[name]?.toString() ?? 'unknown')
+    );
   }
 
   info(format: string, params?: Record<string, unknown>): void {
-    console.log(format.replace(/\{(.*?)}/g, (_, name: string) => params?.[name]?.toString() ?? 'unknown'));
+    console.log(
+      format.replace(/\{(.*?)}/g, (_, name: string) => params?.[name]?.toString() ?? 'unknown')
+    );
   }
 
   trace(format: string, params?: Record<string, unknown>): void {
-    console.log(format.replace(/\{(.*?)}/g, (_, name: string) => params?.[name]?.toString() ?? 'unknown'));
+    console.log(
+      format.replace(/\{(.*?)}/g, (_, name: string) => params?.[name]?.toString() ?? 'unknown')
+    );
   }
 
   warn(format: string, params?: Record<string, unknown>): void {
-    console.log(format.replace(/\{(.*?)}/g, (_, name: string) => params?.[name]?.toString() ?? 'unknown'));
+    console.log(
+      format.replace(/\{(.*?)}/g, (_, name: string) => params?.[name]?.toString() ?? 'unknown')
+    );
   }
 }
 
@@ -43,7 +53,7 @@ const normalizeKey = (key: string) => (key === 'sessionID' ? 'session.id' : key)
 const clean = (input?: Fields): Fields => {
   return Object.fromEntries(
     Object.entries(input ?? {})
-      .filter(entry => entry[1] !== undefined && entry[1] !== null)
+      .filter(entry => entry[1] !== void 0 && entry[1] !== null)
       .map(([key, value]) => [normalizeKey(key), value])
   );
 };
@@ -53,7 +63,7 @@ const text = (input: unknown): string => {
     return input.map(item => String(item)).join(' ');
   }
   // eslint-disable-next-line @typescript-eslint/no-base-to-string
-  return input === undefined ? '' : String(input);
+  return input === void 0 ? '' : String(input);
 };
 
 export const logger = Logger.make(opts => {
@@ -66,7 +76,7 @@ export const logger = Logger.make(opts => {
     extra.cause = Cause.pretty(opts.cause);
   }
 
-  const svc = typeof extra.service === 'string' ? extra.service : undefined;
+  const svc = typeof extra.service === 'string' ? extra.service : void 0;
   if (svc) {
     delete extra.service;
   }

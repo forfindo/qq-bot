@@ -53,7 +53,7 @@ export const layer = Layer.effect(
 
     const populate = Effect.gen(function* () {
       const fromDisk = yield* fs.readJson(Flag.MODELS_PATH ?? filepath).pipe(
-        Effect.catch(() => Effect.succeed(undefined)),
+        Effect.catch(() => Effect.succeed(void 0)),
         Effect.map(v => v as Record<string, SchemaModels.Provider> | undefined)
       );
       if (fromDisk) {
@@ -80,7 +80,7 @@ export const layer = Layer.effect(
     );
 
     const fresh = Effect.fnUntraced(function* () {
-      const stat = yield* fs.stat(filepath).pipe(Effect.catch(() => Effect.succeed(undefined)));
+      const stat = yield* fs.stat(filepath).pipe(Effect.catch(() => Effect.succeed(void 0)));
       if (!stat) {
         return false;
       }

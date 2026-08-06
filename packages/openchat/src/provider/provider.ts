@@ -170,8 +170,8 @@ function modelSuggestions(
 export function toPublicInfo(provider: SchemaProvider.Info) {
   return JSON.parse(
     JSON.stringify(provider, (_, value: unknown) => {
-      if (typeof value === 'function' || typeof value === 'symbol' || value === undefined) {
-        return undefined;
+      if (typeof value === 'function' || typeof value === 'symbol' || value === void 0) {
+        return void 0;
       }
       if (typeof value === 'bigint') {
         return value.toString();
@@ -467,7 +467,7 @@ export const layer = Layer.effect(
           }
           mergeProvider(providerID, {
             source: 'env',
-            key: provider.env.length === 1 ? apiKey : undefined
+            key: provider.env.length === 1 ? apiKey : void 0
           });
         }
 
@@ -686,7 +686,7 @@ export const layer = Layer.effect(
         cause =>
           cause instanceof NoSuchModelError
             ? new ModelNotFoundError({ modelID: model.id, providerID: model.providerID, cause })
-            : undefined
+            : void 0
       );
     });
 
@@ -697,7 +697,7 @@ export const layer = Layer.effect(
       const s = yield* ModuleState.get(state);
       const provider = s.providers[providerID];
       if (!provider) {
-        return undefined;
+        return void 0;
       }
       for (const item of query) {
         for (const modelID of Object.keys(provider.models)) {
@@ -706,7 +706,7 @@ export const layer = Layer.effect(
           }
         }
       }
-      return undefined;
+      return void 0;
     });
 
     const getSmallModel = Effect.fn('Provider.getSmallModel')(function* (
@@ -717,14 +717,14 @@ export const layer = Layer.effect(
       if (cfg.small_model) {
         const parsed = parseModel(cfg.small_model);
         return yield* getModel(parsed.providerID, parsed.modelID).pipe(
-          Effect.catchTag('ProviderModelNotFoundError', () => Effect.succeed(undefined))
+          Effect.catchTag('ProviderModelNotFoundError', () => Effect.succeed(void 0))
         );
       }
 
       const s = yield* ModuleState.get(state);
       const provider = s.providers[providerID];
       if (!provider) {
-        return undefined;
+        return void 0;
       }
 
       let priority = [
@@ -775,7 +775,7 @@ export const layer = Layer.effect(
           }
         }
       }
-      return undefined;
+      return void 0;
     });
 
     const defaultModel = Effect.fn('Provider.defaultModel')(function* () {

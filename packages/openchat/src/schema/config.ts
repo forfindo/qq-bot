@@ -210,6 +210,13 @@ export const Info = Schema.Struct({
   }),
   tools: Schema.optional(Schema.Record(Schema.String, Schema.Boolean)).annotate({
     description: 'Tool activation selection'
-  })
+  }),
+  experimental: Schema.optional(
+    Schema.Struct({
+      mcp_timeout: Schema.optional(PositiveInt).annotate({
+        description: 'Timeout in milliseconds for model context protocol (MCP) requests'
+      })
+    })
+  )
 }).annotate({ identifier: 'Config' });
 export type Info = Types.DeepMutable<Schema.Schema.Type<typeof Info>>;

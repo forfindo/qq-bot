@@ -27,25 +27,25 @@ const GPT5_PRO_RE = /(?:^|\/)gpt-5[.-]?pro(?:[.-]|$)/;
 const GPT5_VERSIONED_PRO_RE = /(?:^|\/)gpt-5[.-]\d+[.-]pro(?:[.-]|$)/;
 
 function gpt5Version(apiId: string) {
-  return Number(GPT5_VERSION_RE.exec(apiId)?.[1]) || undefined;
+  return Number(GPT5_VERSION_RE.exec(apiId)?.[1]) || void 0;
 }
 
 function gpt5ChatReasoningEfforts(apiId: string) {
   if (!GPT5_FAMILY_RE.test(apiId) || !apiId.includes('-chat')) {
-    return undefined;
+    return void 0;
   }
-  return gpt5Version(apiId) === undefined ? [] : OPENAI_GPT5_CHAT_EFFORTS;
+  return gpt5Version(apiId) === void 0 ? [] : OPENAI_GPT5_CHAT_EFFORTS;
 }
 
 function gpt5CodexReasoningEfforts(apiId: string) {
   if (!GPT5_FAMILY_RE.test(apiId) || !apiId.includes('codex')) {
-    return undefined;
+    return void 0;
   }
   const version = gpt5Version(apiId);
-  if (version !== undefined && version >= 3) {
+  if (version !== void 0 && version >= 3) {
     return OPENAI_GPT5_CODEX_3_PLUS_EFFORTS;
   }
-  if (apiId.includes('codex-max') || (version !== undefined && version >= 2)) {
+  if (apiId.includes('codex-max') || (version !== void 0 && version >= 2)) {
     return OPENAI_GPT5_CODEX_XHIGH_EFFORTS;
   }
   return WIDELY_SUPPORTED_EFFORTS;
@@ -56,8 +56,8 @@ function versionedGpt5ReasoningEfforts(apiId: string) {
     return OPENAI_GPT5_PRO_2_PLUS_EFFORTS;
   }
   const version = gpt5Version(apiId);
-  if (version === undefined) {
-    return undefined;
+  if (version === void 0) {
+    return void 0;
   }
   if (version === 1) {
     return OPENAI_GPT5_1_EFFORTS;
@@ -334,7 +334,7 @@ export function variants(model: SchemaProvider.Model): Record<string, Record<str
         return {};
       }
       return Object.fromEntries(
-        (GPT5_FAMILY_RE.test(id) && gpt5Version(id) === undefined
+        (GPT5_FAMILY_RE.test(id) && gpt5Version(id) === void 0
           ? ['minimal', ...WIDELY_SUPPORTED_EFFORTS]
           : WIDELY_SUPPORTED_EFFORTS
         ).map(effort => [

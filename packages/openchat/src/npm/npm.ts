@@ -9,7 +9,7 @@ import { SchemaNpm } from '@/schema';
 import { load } from '@/npm/npm-config';
 
 const illegal =
-  process.platform === 'win32' ? new Set(['<', '>', ':', '"', '|', '?', '*']) : undefined;
+  process.platform === 'win32' ? new Set(['<', '>', ':', '"', '|', '?', '*']) : void 0;
 
 export function sanitize(pkg: string) {
   if (!illegal) {

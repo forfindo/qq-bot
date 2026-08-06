@@ -11,6 +11,7 @@ import * as SchemaFs from './file-system';
 import * as SchemaImage from './image';
 import * as SchemaModels from './models-dev';
 import * as SchemaNpm from './npm';
+import * as SchemaMcp from './mcp';
 
 export {
   SchemaAttachment,
@@ -25,5 +26,6 @@ export {
   SchemaCommand,
   SchemaAgent,
   SchemaModels,
-  SchemaNpm
+  SchemaNpm,
+  SchemaMcp
 };

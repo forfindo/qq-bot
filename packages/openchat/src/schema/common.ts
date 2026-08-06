@@ -79,6 +79,6 @@ export const optionalOmitUndefined = <S extends Schema.Top>(schema: S) =>
   Schema.optionalKey(schema).pipe(
     Schema.decodeTo(Schema.optional(schema), {
       decode: SchemaGetter.passthrough({ strict: false }),
-      encode: SchemaGetter.transformOptional(Option.filter(value => value !== undefined))
+      encode: SchemaGetter.transformOptional(Option.filter(value => value !== void 0))
     })
   );

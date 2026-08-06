@@ -8,7 +8,7 @@ export function refineRejection<A, E>(
     Effect.catch(error => {
       const cause = Cause.isUnknownError(error) ? error.cause : error;
       const refined = refine(cause);
-      if (refined !== undefined) {
+      if (refined !== void 0) {
         return Effect.fail(refined);
       }
       return Effect.die(cause);

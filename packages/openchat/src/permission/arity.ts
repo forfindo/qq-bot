@@ -2,7 +2,7 @@ export function prefix(tokens: string[]) {
   for (let len = tokens.length; len > 0; len--) {
     const prefix = tokens.slice(0, len).join(' ');
     const arity = ARITY[prefix];
-    if (arity !== undefined) {
+    if (arity !== void 0) {
       return tokens.slice(0, arity);
     }
   }

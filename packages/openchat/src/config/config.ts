@@ -16,7 +16,10 @@ import { applyEdits, modify } from 'jsonc-parser';
 
 const log = Log.create();
 
-function mergeConfigConcatArrays(target: SchemaConfig.Info, source: SchemaConfig.Info): SchemaConfig.Info {
+function mergeConfigConcatArrays(
+  target: SchemaConfig.Info,
+  source: SchemaConfig.Info
+): SchemaConfig.Info {
   const merged = mergeDeep(target, source);
   if (target.instructions && source.instructions) {
     merged.instructions = Array.from(new Set([...target.instructions, ...source.instructions]));
@@ -28,7 +31,9 @@ export interface Interface {
   readonly get: () => Effect.Effect<SchemaConfig.Info>;
   readonly getGlobal: () => Effect.Effect<SchemaConfig.Info>;
   readonly update: (config: SchemaConfig.Info) => Effect.Effect<void>;
-  readonly updateGlobal: (config: SchemaConfig.Info) => Effect.Effect<{ info: SchemaConfig.Info; changed: boolean }>;
+  readonly updateGlobal: (
+    config: SchemaConfig.Info
+  ) => Effect.Effect<{ info: SchemaConfig.Info; changed: boolean }>;
   readonly invalidate: () => Effect.Effect<void>;
   readonly directories: () => Effect.Effect<string[]>;
 }
@@ -41,7 +46,7 @@ type State = {
 function writableGlobal(next: SchemaConfig.Info) {
   // When a user changes config from a value back to default in the Desktop app, we don't want to leave a blank `"shell": "",` key
   if ('shell' in next && next.shell === '') {
-    return { ...next, shell: undefined };
+    return { ...next, shell: void 0 };
   }
   return next;
 }
@@ -57,11 +62,16 @@ function patchJsonc(input: string, patch: unknown, path: string[] = []): string 
     return applyEdits(input, edits);
   }
 
-  return Object.entries(patch).reduce((result, [key, value]) => patchJsonc(result, value, [...path, key]), input);
+  return Object.entries(patch).reduce(
+    (result, [key, value]) => patchJsonc(result, value, [...path, key]),
+    input
+  );
 }
 
 function globalConfigFile() {
-  const candidates = ['openchat.jsonc', 'openchat.json', 'config.json'].map(file => path.join(Global.Path.config, file));
+  const candidates = ['openchat.jsonc', 'openchat.json', 'config.json'].map(file =>
+    path.join(Global.Path.config, file)
+  );
   for (const file of candidates) {
     if (existsSync(file)) {
       return file;
@@ -80,7 +90,11 @@ export const layer = Layer.effect(
 
     const readConfigFile = (filepath: string) => fs.readFileStringSafe(filepath).pipe(Effect.orDie);
 
-    const substituteWellKnownRemoteConfig = Effect.fnUntraced(function* (input: { value: unknown; dir: string; source: string }) {
+    const substituteWellKnownRemoteConfig = Effect.fnUntraced(function* (input: {
+      value: unknown;
+      dir: string;
+      source: string;
+    }) {
       if (!TypeGuard.isRecord(input.value) || typeof input.value.url !== 'string') {
         return;
       }
@@ -109,14 +123,21 @@ export const layer = Layer.effect(
             ),
             Effect.all
           )
-        : undefined;
+        : void 0;
 
       return { url, headers };
     });
 
-    const loadConfig = Effect.fnUntraced(function* (text: string, options: { path: string } | { dir: string; source: string }) {
+    const loadConfig = Effect.fnUntraced(function* (
+      text: string,
+      options: { path: string } | { dir: string; source: string }
+    ) {
       const source = 'path' in options ? options.path : options.source;
-      const expanded = yield* substitute('path' in options ? { text, type: 'path', path: options.path } : { text, type: 'virtual', ...options });
+      const expanded = yield* substitute(
+        'path' in options
+          ? { text, type: 'path', path: options.path }
+          : { text, type: 'virtual', ...options }
+      );
       const parsed = yield* jsonc(expanded, source);
       const data = yield* schema(SchemaConfig.Info, parsed, source);
       if (!('path' in options)) {
@@ -125,7 +146,10 @@ export const layer = Layer.effect(
 
       if (!data.$schema) {
         data.$schema = 'https://opencode.ai/config.json';
-        const updated = text.replace(/^\s*\{/, '{\n  "$schema": "https://opencode.ai/config.json",');
+        const updated = text.replace(
+          /^\s*\{/,
+          '{\n  "$schema": "https://opencode.ai/config.json",'
+        );
         yield* fs.writeFileString(options.path, updated).pipe(Effect.catch(() => Effect.void));
       }
       return data;
@@ -147,19 +171,28 @@ export const layer = Layer.effect(
       if (!Flag.CONFIG_DIR && !Flag.CONFIG_CONTENT) {
         const file = globalConfigFile();
         if (!existsSync(file)) {
-          yield* fs.writeWithDirs(file, JSON.stringify({ $schema: 'https://opencode.ai/config.json' }, null, 2)).pipe(Effect.catch(() => Effect.void));
+          yield* fs
+            .writeWithDirs(
+              file,
+              JSON.stringify({ $schema: 'https://opencode.ai/config.json' }, null, 2)
+            )
+            .pipe(Effect.catch(() => Effect.void));
         }
       }
       result = mergeDeep(result, yield* loadFile(path.join(Global.Path.config, 'config.json')));
       result = mergeDeep(result, yield* loadFile(path.join(Global.Path.config, 'openchat.json')));
-      result = mergeDeep(result, yield * loadFile(path.join(Global.Path.config, 'openchat.jsonc')));
+      result = mergeDeep(result, yield* loadFile(path.join(Global.Path.config, 'openchat.jsonc')));
 
       return result;
     });
 
     const [cachedGlobal, invalidateGlobal] = yield* Effect.cachedInvalidateWithTTL(
       loadGlobal().pipe(
-        Effect.tapError(error => Effect.sync(() => log.error('failed to load global config, using defaults', { error: error.message }))),
+        Effect.tapError(error =>
+          Effect.sync(() =>
+            log.error('failed to load global config, using defaults', { error: error.message })
+          )
+        ),
         Effect.provideService(AppFileSystem.Service, fs),
         Effect.orElseSucceed((): SchemaConfig.Info => ({}))
       ),
@@ -180,7 +213,7 @@ export const layer = Layer.effect(
             const url = key.replace(/\/+$/, '');
             setFlag(value.key, value.token);
             log.debug('fetching remote config', { url: `${url}/.well-known/openchat` });
-            const response = yield * Effect.promise(() => fetch(`${url}/.well-known/openchat`));
+            const response = yield* Effect.promise(() => fetch(`${url}/.well-known/openchat`));
             if (!response.ok) {
               throw new Error(`failed to fetch remote config from ${url}: ${response.status}`);
             }
@@ -198,13 +231,20 @@ export const layer = Layer.effect(
                   log.debug('fetching remote config', { url: remote.url });
                   const response = await fetch(remote.url, { headers: remote.headers });
                   if (!response.ok) {
-                    throw new Error(`failed to fetch remote config from ${remote.url}: ${response.status}`);
+                    throw new Error(
+                      `failed to fetch remote config from ${remote.url}: ${response.status}`
+                    );
                   }
                   const data = await response.json();
-                  return TypeGuard.isRecord(data) && TypeGuard.isRecord(data.config) ? data.config : data;
+                  return TypeGuard.isRecord(data) && TypeGuard.isRecord(data.config)
+                    ? data.config
+                    : data;
                 })) as Record<string, unknown>)
               : {};
-            const remoteConfig = mergeDeep(wellknown.config ?? {}, fetchedConfig as SchemaConfig.Info);
+            const remoteConfig = mergeDeep(
+              wellknown.config ?? {},
+              fetchedConfig as SchemaConfig.Info
+            );
             if (!remoteConfig.$schema) {
               remoteConfig.$schema = 'https://opencode.ai/config.json';
             }
@@ -224,7 +264,11 @@ export const layer = Layer.effect(
         result.agent = result.agent || {};
         result.mode = result.mode || {};
 
-        const dirs = unique([Global.Path.config, yield* InstanceContext.directory, ...(Flag.CONFIG_DIR ? [Flag.CONFIG_DIR] : [])]);
+        const dirs = unique([
+          Global.Path.config,
+          yield* InstanceContext.directory,
+          ...(Flag.CONFIG_DIR ? [Flag.CONFIG_DIR] : [])
+        ]);
 
         if (Flag.CONFIG_DIR) {
           log.debug('loading config from CONFIG_DIR', { path: Flag.CONFIG_DIR });
@@ -232,7 +276,7 @@ export const layer = Layer.effect(
 
         for (const dir of dirs) {
           if (dir !== Global.Path.config) {
-            for (const file of ['opechat.json', 'opechat.jsonc']) {
+            for (const file of ['openchat.json', 'openchat.jsonc']) {
               const source = path.join(dir, file);
               log.debug(`loading config from ${source}`);
               merge(yield* loadFile(source));
@@ -313,7 +357,9 @@ export const layer = Layer.effect(
         const dir = yield* InstanceContext.directory;
         const file = path.join(dir, 'config.json');
         const existing = yield* loadFile(file);
-        yield* fs.writeFileString(file, JSON.stringify(mergeDeep(existing, config), null, 2)).pipe(Effect.orDie);
+        yield* fs
+          .writeFileString(file, JSON.stringify(mergeDeep(existing, config), null, 2))
+          .pipe(Effect.orDie);
       },
       Effect.provideService(AppFileSystem.Service, fs),
       Effect.orDie
@@ -377,4 +423,7 @@ export const layer = Layer.effect(
   })
 );
 
-export const defaultLayer = layer.pipe(Layer.provide(Auth.defaultLayer), Layer.provide(AppFileSystem.defaultLayer));
+export const defaultLayer = layer.pipe(
+  Layer.provide(Auth.defaultLayer),
+  Layer.provide(AppFileSystem.defaultLayer)
+);

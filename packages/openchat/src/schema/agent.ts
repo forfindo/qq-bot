@@ -12,13 +12,18 @@ const AgentSchema = Schema.StructWithRest(
       description: "@deprecated Use 'permission' field instead"
     }),
     disable: Schema.optional(Schema.Boolean),
-    description: Schema.optional(Schema.String).annotate({ description: 'Description of when to use the agent' }),
+    description: Schema.optional(Schema.String).annotate({
+      description: 'Description of when to use the agent'
+    }),
     mode: Schema.optional(Schema.Literals(['subagent', 'primary', 'all'])),
     hidden: Schema.optional(Schema.Boolean).annotate({
-      description: 'Hide this subagent from the @ autocomplete menu (default: false, only applies to mode: subagent)'
+      description:
+        'Hide this subagent from the @ autocomplete menu (default: false, only applies to mode: subagent)'
     }),
     options: Schema.optional(Schema.Record(Schema.String, Schema.Any)),
-    maxSteps: Schema.optional(PositiveInt).annotate({ description: 'Maximum number of agentic iterations before forcing text-only response' }),
+    maxSteps: Schema.optional(PositiveInt).annotate({
+      description: 'Maximum number of agentic iterations before forcing text-only response'
+    }),
     permission: Schema.optional(SchemaPermission.Info)
   }),
   [Schema.Record(Schema.String, Schema.Any)]
@@ -49,7 +54,9 @@ const KNOWN_KEYS = new Set([
 //  - Translate the deprecated `tools: { name: boolean }` map into the new
 //    `permission` shape (write-adjacent tools collapse into `permission.edit`).
 //  - Coalesce `steps ?? maxSteps` so downstream can ignore the deprecated alias.
-const normalize = (agent: Schema.Schema.Type<typeof AgentSchema>): Schema.Schema.Type<typeof AgentSchema> => {
+const normalize = (
+  agent: Schema.Schema.Type<typeof AgentSchema>
+): Schema.Schema.Type<typeof AgentSchema> => {
   const options: Record<string, unknown> = { ...agent.options };
   for (const [key, value] of Object.entries(agent)) {
     if (!KNOWN_KEYS.has(key)) {
@@ -69,7 +76,7 @@ const normalize = (agent: Schema.Schema.Type<typeof AgentSchema>): Schema.Schema
   Object.assign(permission, agent.permission);
 
   const steps = agent.maxSteps;
-  return { ...agent, options, permission, ...(steps !== undefined ? { steps } : {}) };
+  return { ...agent, options, permission, ...(steps !== void 0 ? { steps } : {}) };
 };
 
 export const Info = AgentSchema.pipe(

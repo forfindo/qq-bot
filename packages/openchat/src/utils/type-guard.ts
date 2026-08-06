@@ -6,6 +6,6 @@ export function typeSafeParse(input: string) {
   try {
     return JSON.parse(input) as Record<string, unknown>;
   } catch (_) {
-    return undefined;
+    return void 0;
   }
 }

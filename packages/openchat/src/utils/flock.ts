@@ -190,7 +190,7 @@ async function tryAcquireLockDir(
       if (errCode === 'EEXIST') {
         const breaker = await stats(breakerPath);
         if (breaker && wall() - breaker.mtimeMs > opts.staleMs) {
-          await rm(breakerPath, { recursive: true, force: true }).catch(() => undefined);
+          await rm(breakerPath, { recursive: true, force: true }).catch(() => void 0);
         }
         return { acquired: false };
       }
@@ -220,7 +220,7 @@ async function tryAcquireLockDir(
         throw retryErr;
       }
     } finally {
-      await rm(breakerPath, { recursive: true, force: true }).catch(() => undefined);
+      await rm(breakerPath, { recursive: true, force: true }).catch(() => void 0);
     }
   }
 
@@ -254,7 +254,7 @@ async function tryAcquireLockDir(
     // Heartbeat prevents long critical sections from being evicted as stale.
     timer = setInterval(() => {
       const t = new Date();
-      void utimes(heartbeatPath, t, t).catch(() => undefined);
+      void utimes(heartbeatPath, t, t).catch(() => void 0);
     }, intervalMs);
     timer.unref?.();
   };
@@ -262,7 +262,7 @@ async function tryAcquireLockDir(
   const release = async () => {
     if (timer) {
       clearInterval(timer);
-      timer = undefined;
+      timer = void 0;
     }
 
     const current = await readFile(metaPath, 'utf8')
@@ -272,7 +272,7 @@ async function tryAcquireLockDir(
           return {};
         }
         return {
-          token: 'token' in parsed && typeof parsed.token === 'string' ? parsed.token : undefined
+          token: 'token' in parsed && typeof parsed.token === 'string' ? parsed.token : void 0
         };
       })
       .catch(err => {

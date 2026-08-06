@@ -2,6 +2,7 @@ import { AppFileSystem } from '@/file-system';
 import { LocalContext } from '@/utils';
 import { Effect } from 'effect';
 import path from 'path';
+import { InstanceRef } from '@/instance/refrences';
 
 export interface InstanceContext {
   readonly uid: string;
@@ -36,13 +37,16 @@ export const Instance = {
   }
 };
 
-export const InstanceContext = Effect.sync(() => Instance.current);
+export const InstanceContext = Effect.gen(function* () {
+  return (yield* InstanceRef) ?? Instance.current;
+});
 
 export const uid = Effect.map(InstanceContext, ctx => ctx.uid);
 
 export const directory = Effect.gen(function* () {
   const fs = yield* AppFileSystem.Service;
-  const dir = path.resolve('./.openchat', Instance.uid);
+  const instance = yield* InstanceContext;
+  const dir = path.resolve('./.openchat', instance.uid);
   yield* fs.ensureDir(dir);
   return dir;
-});
+}).pipe(Effect.orDie);
