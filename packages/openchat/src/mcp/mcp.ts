@@ -539,15 +539,22 @@ export const layer = Layer.effect(
 
     const descendants = Effect.fnUntraced(
       function* (pid: number) {
-        if (process.platform === 'win32') {
-          return [] as number[];
-        }
         const pids: number[] = [];
         const queue = [pid];
         while (queue.length > 0) {
           const current = queue.shift()!;
           const handle = yield* spawner.spawn(
-            ChildProcess.make('pgrep', ['-P', String(current)], { stdin: 'ignore' })
+            process.platform === 'win32'
+              ? ChildProcess.make(
+                  'powershell',
+                  [
+                    '-NoProfile',
+                    '-Command',
+                    `Get-CimInstance Win32_Process | Where-Object { $_.ParentProcessId -eq ${current} } | Select-Object -ExpandProperty ProcessId`
+                  ],
+                  { stdin: 'ignore' }
+                )
+              : ChildProcess.make('pgrep', ['-P', String(current)], { stdin: 'ignore' })
           );
           const text = yield* Stream.mkString(Stream.decodeText(handle.stdout));
           yield* handle.exitCode;
