@@ -12,6 +12,7 @@ import * as SchemaImage from './image';
 import * as SchemaModels from './models-dev';
 import * as SchemaNpm from './npm';
 import * as SchemaMcp from './mcp';
+import * as SchemaSkill from './skill';
 
 export {
   SchemaAttachment,
@@ -27,5 +28,6 @@ export {
   SchemaAgent,
   SchemaModels,
   SchemaNpm,
-  SchemaMcp
+  SchemaMcp,
+  SchemaSkill
 };

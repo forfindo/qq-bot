@@ -8,7 +8,7 @@ import { schema } from '@/config/parse';
 const log = Log.create({ service: 'config' });
 
 export const load = Effect.fn('ConfigAgent.load')(function* (dir: string) {
-  const result: Record<string, SchemaAgent.Info> = {};
+  const result: Record<string, SchemaAgent.ConfigInfo> = {};
   const globResult = yield* Effect.promise(() =>
     Glob.scan('{agent,agents}/**/*.md', {
       cwd: dir,
@@ -42,13 +42,13 @@ export const load = Effect.fn('ConfigAgent.load')(function* (dir: string) {
       ...md.data,
       prompt: md.content.trim()
     };
-    result[config.name] = schema(SchemaAgent.Info, config, item);
+    result[config.name] = schema(SchemaAgent.ConfigInfo, config, item);
   }
   return result;
 });
 
 export const loadMode = Effect.fn('ConfigAgent.loadMore')(function* (dir: string) {
-  const result: Record<string, SchemaAgent.Info> = {};
+  const result: Record<string, SchemaAgent.ConfigInfo> = {};
   const globResult = yield* Effect.promise(() =>
     Glob.scan('{mode,modes}/*.md', {
       cwd: dir,
@@ -79,7 +79,10 @@ export const loadMode = Effect.fn('ConfigAgent.loadMore')(function* (dir: string
       ...md.data,
       prompt: md.content.trim()
     };
-    const parsed = Schema.decodeUnknownExit(SchemaAgent.Info)(config, { errors: 'all', propertyOrder: 'original' });
+    const parsed = Schema.decodeUnknownExit(SchemaAgent.ConfigInfo)(config, {
+      errors: 'all',
+      propertyOrder: 'original'
+    });
     if (Exit.isSuccess(parsed)) {
       result[config.name] = {
         ...parsed.value,

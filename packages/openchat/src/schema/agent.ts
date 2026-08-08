@@ -1,6 +1,7 @@
 import { Schema, SchemaGetter } from 'effect';
-import { PositiveInt } from '@/schema/common';
+import { type DeepMutable, PositiveInt } from './common';
 import * as SchemaPermission from './permission';
+import * as SchemaProvider from './provider';
 
 const AgentSchema = Schema.StructWithRest(
   Schema.Struct({
@@ -79,10 +80,33 @@ const normalize = (
   return { ...agent, options, permission, ...(steps !== void 0 ? { steps } : {}) };
 };
 
-export const Info = AgentSchema.pipe(
+export const ConfigInfo = AgentSchema.pipe(
   Schema.decode({
     decode: SchemaGetter.transform(normalize),
     encode: SchemaGetter.passthrough({ strict: false })
   })
 ).annotate({ identifier: 'AgentConfig' });
-export type Info = Schema.Schema.Type<typeof Info>;
+export type ConfigInfo = Schema.Schema.Type<typeof ConfigInfo>;
+
+export const Info = Schema.Struct({
+  name: Schema.String,
+  description: Schema.optional(Schema.String),
+  mode: Schema.Literals(['subagent', 'primary', 'all']),
+  native: Schema.optional(Schema.Boolean),
+  hidden: Schema.optional(Schema.Boolean),
+  topP: Schema.optional(Schema.Finite),
+  temperature: Schema.optional(Schema.Finite),
+  color: Schema.optional(Schema.String),
+  permission: SchemaPermission.Ruleset,
+  model: Schema.optional(
+    Schema.Struct({
+      modelID: SchemaProvider.ModelID,
+      providerID: SchemaProvider.ProviderID
+    })
+  ),
+  variant: Schema.optional(Schema.String),
+  prompt: Schema.optional(Schema.String),
+  options: Schema.Record(Schema.String, Schema.Unknown),
+  steps: Schema.optional(Schema.Finite)
+}).annotate({ identifier: 'Agent' });
+export type Info = DeepMutable<Schema.Schema.Type<typeof Info>>;

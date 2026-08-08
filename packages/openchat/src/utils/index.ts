@@ -9,8 +9,10 @@ import * as AppError from './error';
 import * as Hash from './hash';
 import * as Flock from './flock';
 import * as EffectPromise from './promise';
+
 export * from './iife';
 export * from './timeout';
+export * from './effect-http-client';
 
 export {
   Wildcard,

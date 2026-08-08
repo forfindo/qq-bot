@@ -4,6 +4,7 @@ import * as SchemaMCP from './mcp';
 import * as SchemaAgent from './agent';
 import * as SchemaCommand from './command';
 import * as SchemaPermission from './permission';
+import * as SchemaSkill from './skill';
 import { NonNegativeInt, PositiveInt } from '@/schema/common';
 import { ModelStatus } from '@/schema/provider';
 
@@ -151,6 +152,9 @@ export const Info = Schema.Struct({
   disabled_providers: Schema.optional(Schema.mutable(Schema.Array(Schema.String))).annotate({
     description: 'Disable providers that are loaded automatically'
   }),
+  skills: Schema.optional(SchemaSkill.ConfigInfo).annotate({
+    description: 'Additional skill folder paths'
+  }),
   enabled_providers: Schema.optional(Schema.mutable(Schema.Array(Schema.String))).annotate({
     description:
       'When set, ONLY these providers will be enabled. All other providers will be ignored'
@@ -166,18 +170,18 @@ export const Info = Schema.Struct({
     Schema.StructWithRest(
       Schema.Struct({
         // primary
-        plan: Schema.optional(SchemaAgent.Info),
-        build: Schema.optional(SchemaAgent.Info),
+        plan: Schema.optional(SchemaAgent.ConfigInfo),
+        build: Schema.optional(SchemaAgent.ConfigInfo),
         // subagent
-        general: Schema.optional(SchemaAgent.Info),
-        explore: Schema.optional(SchemaAgent.Info),
-        scout: Schema.optional(SchemaAgent.Info),
+        general: Schema.optional(SchemaAgent.ConfigInfo),
+        explore: Schema.optional(SchemaAgent.ConfigInfo),
+        scout: Schema.optional(SchemaAgent.ConfigInfo),
         // specialized
-        title: Schema.optional(SchemaAgent.Info),
-        summary: Schema.optional(SchemaAgent.Info),
-        compaction: Schema.optional(SchemaAgent.Info)
+        title: Schema.optional(SchemaAgent.ConfigInfo),
+        summary: Schema.optional(SchemaAgent.ConfigInfo),
+        compaction: Schema.optional(SchemaAgent.ConfigInfo)
       }),
-      [Schema.Record(Schema.String, SchemaAgent.Info)]
+      [Schema.Record(Schema.String, SchemaAgent.ConfigInfo)]
     )
   ).annotate({ description: 'Agent configuration, see https://opencode.ai/docs/agents' }),
   provider: Schema.optional(Schema.Record(Schema.String, ConfigProvider)).annotate({
@@ -186,10 +190,10 @@ export const Info = Schema.Struct({
   mode: Schema.optional(
     Schema.StructWithRest(
       Schema.Struct({
-        build: Schema.optional(SchemaAgent.Info),
-        plan: Schema.optional(SchemaAgent.Info)
+        build: Schema.optional(SchemaAgent.ConfigInfo),
+        plan: Schema.optional(SchemaAgent.ConfigInfo)
       }),
-      [Schema.Record(Schema.String, SchemaAgent.Info)]
+      [Schema.Record(Schema.String, SchemaAgent.ConfigInfo)]
     )
   ).annotate({ description: '@deprecated Use `agent` field instead.' }),
   mcp: Schema.optional(

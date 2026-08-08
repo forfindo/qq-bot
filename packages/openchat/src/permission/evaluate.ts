@@ -1,14 +1,17 @@
 import { Wildcard } from '@/utils';
+import { SchemaPermission } from '@/schema';
 
-type Rule = {
-  permission: string;
-  pattern: string;
-  action: 'allow' | 'deny' | 'ask';
-};
-
-export function evaluate(permission: string, pattern: string, ...rulesets: Rule[][]): Rule {
+export function evaluate(
+  permission: string,
+  pattern: string,
+  ...rulesets: SchemaPermission.Rule[][]
+): SchemaPermission.Rule {
   return (
-    rulesets.flat().findLast(rule => Wildcard.match(permission, rule.permission) && Wildcard.match(pattern, rule.pattern)) ?? {
+    rulesets
+      .flat()
+      .findLast(
+        rule => Wildcard.match(permission, rule.permission) && Wildcard.match(pattern, rule.pattern)
+      ) ?? {
       action: 'ask',
       permission,
       pattern: '*'

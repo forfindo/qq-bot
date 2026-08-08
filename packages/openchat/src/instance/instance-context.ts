@@ -44,9 +44,13 @@ export const InstanceContext = Effect.gen(function* () {
 export const uid = Effect.map(InstanceContext, ctx => ctx.uid);
 
 export const directory = Effect.gen(function* () {
+  return yield* getDirectory();
+});
+
+export const getDirectory = Effect.fnUntraced(function* (uid?: string) {
   const fs = yield* AppFileSystem.Service;
-  const instance = yield* InstanceContext;
-  const dir = path.resolve('./.openchat', instance.uid);
-  yield* fs.ensureDir(dir);
+  const suid = uid ?? (yield* InstanceContext).uid;
+  const dir = path.resolve('./.openchat', suid);
+  yield* fs.ensureDir(dir).pipe(Effect.orDie);
   return dir;
-}).pipe(Effect.orDie);
+});

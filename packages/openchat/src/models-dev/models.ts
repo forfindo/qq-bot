@@ -1,10 +1,10 @@
-import { Context, Duration, Effect, Layer, Option, Schedule } from 'effect';
+import { Context, Duration, Effect, Layer, Option } from 'effect';
 import { SchemaModels } from '@/schema';
 import { AppFileSystem } from '@/file-system';
 import { HttpClient, HttpClientRequest, FetchHttpClient } from 'effect/unstable/http';
 import path from 'path';
 import { Flag } from '@/flag';
-import { Flock, Global, Hash, Log } from '@/utils';
+import { Flock, Global, Hash, Log, withTransientReadRetry } from '@/utils';
 import pkg from '../../package.json' with { type: 'json' };
 
 const log = Log.create({ service: 'modelsDev' });
@@ -20,15 +20,7 @@ export const layer = Layer.effect(
   Service,
   Effect.gen(function* () {
     const fs = yield* AppFileSystem.Service;
-    const http = HttpClient.filterStatusOk(
-      (yield* HttpClient.HttpClient).pipe(
-        HttpClient.retryTransient({
-          retryOn: 'errors-and-responses',
-          times: 2,
-          schedule: Schedule.exponential(200).pipe(Schedule.jittered)
-        })
-      )
-    );
+    const http = HttpClient.filterStatusOk(withTransientReadRetry(yield* HttpClient.HttpClient));
     const source = Flag.MODELS_URL || 'https://models.dev';
     const filepath = path.join(
       Global.Path.cache,

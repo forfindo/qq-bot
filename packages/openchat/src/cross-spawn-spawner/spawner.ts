@@ -1,16 +1,5 @@
 import type * as Arr from 'effect/Array';
-import {
-  Deferred,
-  Effect,
-  Exit,
-  FileSystem,
-  Layer,
-  Path,
-  Predicate,
-  Scope,
-  Sink,
-  Stream
-} from 'effect';
+import { Deferred, Effect, Exit, FileSystem, Layer, Predicate, Scope, Sink, Stream } from 'effect';
 import {
   type ChildProcessHandle,
   ChildProcessSpawner,
@@ -24,7 +13,8 @@ import { PlatformError, systemError, type SystemErrorTag } from 'effect/Platform
 import NodeChildProcess from 'node:child_process';
 import launch from 'cross-spawn';
 import { PassThrough } from 'node:stream';
-import { NodeFileSystem, NodePath, NodeSink, NodeStream } from '@effect/platform-node';
+import { NodeFileSystem, NodeSink, NodeStream } from '@effect/platform-node';
+import path from 'path';
 
 type ExitSignal = Deferred.Deferred<readonly [code: number | null, signal: NodeJS.Signals | null]>;
 
@@ -394,7 +384,6 @@ const setupStdin = (
 
 export const make = Effect.gen(function* () {
   const fs = yield* FileSystem.FileSystem;
-  const path = yield* Path.Path;
 
   const cwd = Effect.fnUntraced(function* (opts: ChildProcess.CommandOptions) {
     if (Predicate.isUndefined(opts.cwd)) {
@@ -555,7 +544,4 @@ export const make = Effect.gen(function* () {
 
 export const layer = Layer.effect(ChildProcessSpawner, make);
 
-export const defaultLayer = layer.pipe(
-  Layer.provide(NodeFileSystem.layer),
-  Layer.provide(NodePath.layer)
-);
+export const defaultLayer = layer.pipe(Layer.provide(NodeFileSystem.layer));

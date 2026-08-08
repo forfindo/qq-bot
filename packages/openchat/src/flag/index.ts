@@ -8,6 +8,15 @@ function truthy(key: string) {
   return value === 'true' || value === '1';
 }
 
+function oneOf(...keys: string[]) {
+  for (const key of keys) {
+    if (truthy(key)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 const StaticFlag = {
   CONFIG_DIR: process.env['CONFIG_DIR'],
   AUTH_CONTENT: process.env['AUTH_CONTENT'],
@@ -18,7 +27,9 @@ const StaticFlag = {
   DISABLE_PRUNE: process.env['DISABLE_PRUNE'],
   MODELS_URL: process.env['MODELS_URL'],
   MODELS_PATH: process.env['MODELS_PATH'],
-  DISABLE_MODELS_FETCH: truthy('DISABLE_MODELS_FETCH')
+  DISABLE_MODELS_FETCH: truthy('DISABLE_MODELS_FETCH'),
+  DISABLE_EXTERNAL_SKILLS: truthy('DISABLE_EXTERNAL_SKILLS'),
+  DISABLE_CLAUDE_CODE_SKILLS: oneOf('DISABLE_CLAUDE_CODE_SKILLS', 'DISABLE_CLAUDE_CODE')
 };
 
 type STAKey = keyof typeof StaticFlag;
