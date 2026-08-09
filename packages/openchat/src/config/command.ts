@@ -36,7 +36,7 @@ export const load = Effect.fn('ConfigCommand.load')(function* (dir: string) {
       continue;
     }
 
-    const patterns = ['/.openchat/command/', '/.openchat/commands/', '/command/', '/commands/'];
+    const patterns = ['/command/', '/commands/'];
     const name = configEntryNameFromPath(item, patterns);
 
     const config = {
@@ -49,7 +49,10 @@ export const load = Effect.fn('ConfigCommand.load')(function* (dir: string) {
       result[config.name] = parsed.value;
       continue;
     }
-    throw new InvalidError({ path: item, message: Cause.pretty(parsed.cause) }, { cause: Cause.squash(parsed.cause) });
+    throw new InvalidError(
+      { path: item, message: Cause.pretty(parsed.cause) },
+      { cause: Cause.squash(parsed.cause) }
+    );
   }
   return result;
 });

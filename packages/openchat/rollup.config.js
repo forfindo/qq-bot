@@ -9,7 +9,11 @@ import pkg from './package.json' with { type: 'json' };
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 function resolveExternal() {
-  return [...Object.keys(pkg.dependencies || {}), ...Object.keys(pkg.devDependencies || {}), /^node:/];
+  return [
+    ...Object.keys(pkg.dependencies || {}),
+    ...Object.keys(pkg.devDependencies || {}),
+    /^node:/
+  ];
 }
 
 /** @type {import('rollup').RollupOptions} */
@@ -34,7 +38,8 @@ export default [
       esbuild({
         tsconfig: path.resolve(__dirname, 'tsconfig.json'),
         sourceMap: false,
-        minify: false
+        minify: false,
+        loaders: { '.md': 'text' }
       })
     ]
   },

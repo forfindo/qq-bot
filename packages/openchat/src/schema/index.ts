@@ -13,6 +13,8 @@ import * as SchemaModels from './models-dev';
 import * as SchemaNpm from './npm';
 import * as SchemaMcp from './mcp';
 import * as SchemaSkill from './skill';
+import * as SchemaTool from './tool';
+import * as SchemaMessage from './message';
 
 export {
   SchemaAttachment,
@@ -29,5 +31,7 @@ export {
   SchemaModels,
   SchemaNpm,
   SchemaMcp,
-  SchemaSkill
+  SchemaSkill,
+  SchemaTool,
+  SchemaMessage
 };

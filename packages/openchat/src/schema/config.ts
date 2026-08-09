@@ -1,11 +1,11 @@
-import { Schema, Types } from 'effect';
+import { Schema } from 'effect';
 import * as SchemaAttachment from './attachment';
 import * as SchemaMCP from './mcp';
 import * as SchemaAgent from './agent';
 import * as SchemaCommand from './command';
 import * as SchemaPermission from './permission';
 import * as SchemaSkill from './skill';
-import { NonNegativeInt, PositiveInt } from '@/schema/common';
+import { type DeepMutable, NonNegativeInt, PositiveInt } from '@/schema/common';
 import { ModelStatus } from '@/schema/provider';
 
 export const ConfigModel = Schema.Struct({
@@ -166,6 +166,10 @@ export const Info = Schema.Struct({
     description:
       'Small model to use for tasks like title generation in the format of provider/model'
   }),
+  default_agent: Schema.optional(Schema.String).annotate({
+    description:
+      "Default agent to use when none is specified. Must be a primary agent. Falls back to 'build' if not set or if the specified agent is invalid."
+  }),
   agent: Schema.optional(
     Schema.StructWithRest(
       Schema.Struct({
@@ -175,7 +179,6 @@ export const Info = Schema.Struct({
         // subagent
         general: Schema.optional(SchemaAgent.ConfigInfo),
         explore: Schema.optional(SchemaAgent.ConfigInfo),
-        scout: Schema.optional(SchemaAgent.ConfigInfo),
         // specialized
         title: Schema.optional(SchemaAgent.ConfigInfo),
         summary: Schema.optional(SchemaAgent.ConfigInfo),
@@ -186,6 +189,21 @@ export const Info = Schema.Struct({
   ).annotate({ description: 'Agent configuration, see https://opencode.ai/docs/agents' }),
   provider: Schema.optional(Schema.Record(Schema.String, ConfigProvider)).annotate({
     description: 'Custom provider configurations and model overrides'
+  }),
+  tool_output: Schema.optional(
+    Schema.Struct({
+      max_lines: Schema.optional(PositiveInt).annotate({
+        description:
+          'Maximum lines of tool output before it is truncated and saved to disk (default: 2000)'
+      }),
+      max_bytes: Schema.optional(PositiveInt).annotate({
+        description:
+          'Maximum bytes of tool output before it is truncated and saved to disk (default: 51200)'
+      })
+    })
+  ).annotate({
+    description:
+      'Thresholds for truncating tool output. When output exceeds either limit, the full text is written to the truncation directory and a preview is returned.'
   }),
   mode: Schema.optional(
     Schema.StructWithRest(
@@ -223,4 +241,4 @@ export const Info = Schema.Struct({
     })
   )
 }).annotate({ identifier: 'Config' });
-export type Info = Types.DeepMutable<Schema.Schema.Type<typeof Info>>;
+export type Info = DeepMutable<Schema.Schema.Type<typeof Info>>;

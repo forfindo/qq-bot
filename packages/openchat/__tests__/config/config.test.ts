@@ -7,7 +7,8 @@ describe('config service', () => {
   it('CONFIG_CONTENT', async () => {
     const cfg = await InstanceContext.Instance.restore(
       {
-        uid: '3530766280'
+        uid: '3530766280',
+        owner: '3530766280'
       },
       async () => {
         return await Effect.gen(function* () {
@@ -25,7 +26,8 @@ describe('config service', () => {
   it('variable substitution', async () => {
     const cfg = await InstanceContext.Instance.restore(
       {
-        uid: '3530766280'
+        uid: '3530766280',
+        owner: '3530766280'
       },
       async () => {
         return await Effect.gen(function* () {
@@ -44,7 +46,8 @@ describe('config service', () => {
   it.only('directory cfg', async () => {
     const cfg = await InstanceContext.Instance.restore(
       {
-        uid: '3530766280'
+        uid: '3530766280',
+        owner: '3530766280'
       },
       async () => {
         return await Effect.gen(function* () {

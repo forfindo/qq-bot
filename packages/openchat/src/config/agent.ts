@@ -34,7 +34,7 @@ export const load = Effect.fn('ConfigAgent.load')(function* (dir: string) {
       continue;
     }
 
-    const patterns = ['/.openchat/agent/', '/.openchat/agents/', '/agent/', '/agents/'];
+    const patterns = ['/agent/', '/agents/'];
     const name = configEntryNameFromPath(item, patterns);
 
     const config = {
@@ -42,7 +42,7 @@ export const load = Effect.fn('ConfigAgent.load')(function* (dir: string) {
       ...md.data,
       prompt: md.content.trim()
     };
-    result[config.name] = schema(SchemaAgent.ConfigInfo, config, item);
+    result[name] = yield* schema(SchemaAgent.ConfigInfo, config, item);
   }
   return result;
 });

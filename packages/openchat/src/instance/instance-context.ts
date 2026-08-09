@@ -6,6 +6,7 @@ import { InstanceRef } from '@/instance/refrences';
 
 export interface InstanceContext {
   readonly uid: string;
+  readonly owner: string;
 }
 
 const context = LocalContext.create<InstanceContext>('instance');

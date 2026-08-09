@@ -82,3 +82,42 @@ export const optionalOmitUndefined = <S extends Schema.Top>(schema: S) =>
       encode: SchemaGetter.transformOptional(Option.filter(value => value !== void 0))
     })
   );
+
+/**
+ * Nominal wrapper for scalar types. The class itself is a valid schema —
+ * pass it directly to `Schema.decode`, `Schema.decodeEffect`, etc.
+ *
+ * Overrides `~type.make` on the derived `Schema.Opaque` so `Schema.Schema.Type`
+ * of a field using this newtype resolves to `Self` rather than the underlying
+ * branded phantom. Without that override, passing a class instance to code
+ * typed against `Schema.Schema.Type<FieldSchema>` would require a cast even
+ * though the values are structurally equivalent at runtime.
+ *
+ * @example
+ *   class QuestionID extends Newtype<QuestionID>()("QuestionID", Schema.String) {
+ *     static make(id: string): QuestionID {
+ *       return this.make(id)
+ *     }
+ *   }
+ *
+ *   Schema.decodeEffect(QuestionID)(input)
+ */
+export const NewType = <Self>() => {
+  return <const Tag extends string, S extends Schema.Top>(tag: Tag, schema: S) => {
+    abstract class Base {
+      declare readonly _newType: Tag;
+
+      static make(value: Schema.Schema.Type<S>): Self {
+        return value as unknown as Self;
+      }
+    }
+
+    Object.setPrototypeOf(Base, schema);
+
+    return Base as unknown as (abstract new (_: never) => { readonly _newType: Tag }) & {
+      readonly make: (value: Schema.Schema.Type<S>) => Self;
+    } & Omit<Schema.Opaque<Self, S, unknown>, 'make' | '~type.make'> & {
+        readonly '~type.make': Self;
+      };
+  };
+};

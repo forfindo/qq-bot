@@ -1,5 +1,5 @@
 import { Config } from '@/config';
-import type { SchemaMessage } from '@/schema/session';
+import type { SchemaMessage } from '@/schema';
 import { Context, Effect, Layer, Result } from 'effect';
 import { SchemaImage } from '@/schema';
 import { Log } from '@/utils';

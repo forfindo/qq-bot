@@ -6,6 +6,10 @@ import * as SchemaProvider from './provider';
 const AgentSchema = Schema.StructWithRest(
   Schema.Struct({
     model: Schema.optional(Schema.String),
+    variant: Schema.optional(Schema.String).annotate({
+      description:
+        "Default model variant for this agent (applies only when using the agent's configured model)."
+    }),
     temperature: Schema.optional(Schema.Finite),
     top_p: Schema.optional(Schema.Finite),
     prompt: Schema.optional(Schema.String),
@@ -21,13 +25,13 @@ const AgentSchema = Schema.StructWithRest(
       description:
         'Hide this subagent from the @ autocomplete menu (default: false, only applies to mode: subagent)'
     }),
-    options: Schema.optional(Schema.Record(Schema.String, Schema.Any)),
-    maxSteps: Schema.optional(PositiveInt).annotate({
+    options: Schema.optional(Schema.Record(Schema.String, Schema.Unknown)),
+    steps: Schema.optional(PositiveInt).annotate({
       description: 'Maximum number of agentic iterations before forcing text-only response'
     }),
     permission: Schema.optional(SchemaPermission.Info)
   }),
-  [Schema.Record(Schema.String, Schema.Any)]
+  [Schema.Record(Schema.String, Schema.Unknown)]
 );
 
 const KNOWN_KEYS = new Set([
@@ -42,7 +46,6 @@ const KNOWN_KEYS = new Set([
   'hidden',
   'color',
   'steps',
-  'maxSteps',
   'options',
   'permission',
   'disable',
@@ -76,7 +79,7 @@ const normalize = (
   }
   Object.assign(permission, agent.permission);
 
-  const steps = agent.maxSteps;
+  const steps = agent.steps;
   return { ...agent, options, permission, ...(steps !== void 0 ? { steps } : {}) };
 };
 
@@ -96,7 +99,6 @@ export const Info = Schema.Struct({
   hidden: Schema.optional(Schema.Boolean),
   topP: Schema.optional(Schema.Finite),
   temperature: Schema.optional(Schema.Finite),
-  color: Schema.optional(Schema.String),
   permission: SchemaPermission.Ruleset,
   model: Schema.optional(
     Schema.Struct({

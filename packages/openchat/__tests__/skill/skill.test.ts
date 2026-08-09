@@ -10,7 +10,8 @@ describe('skill service', () => {
       return yield* skill.all();
     }).pipe(
       Effect.provideService(InstanceRef, {
-        uid: '3530766280'
+        uid: '3530766280',
+        owner: '3530766280'
       }),
       Effect.provide(Skill.defaultLayer),
       Effect.runPromise

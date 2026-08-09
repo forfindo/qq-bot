@@ -1,4 +1,16 @@
 import { Schema, SchemaGetter } from 'effect';
+import { NewType } from '@/schema/common';
+import { Identifier } from '@/id';
+import { MessageID, SessionID } from '@/schema/message';
+
+export class PermissionID extends NewType<PermissionID>()(
+  'PermissionID',
+  Schema.String.check(Schema.isStartsWith('per'))
+) {
+  static ascending(id?: string): PermissionID {
+    return this.make(Identifier.ascending('permission', id));
+  }
+}
 
 export const Action = Schema.Literals(['ask', 'allow', 'deny']).annotate({
   identifier: 'PermissionAction'
@@ -27,6 +39,21 @@ export const Ruleset = Schema.mutable(Schema.Array(Rule)).annotate({
 });
 export type Ruleset = Schema.Schema.Type<typeof Ruleset>;
 
+export class Request extends Schema.Class<Request>('PermissionRequest')({
+  id: PermissionID,
+  sessionID: SessionID,
+  permission: Schema.String,
+  patterns: Schema.Array(Schema.String),
+  metadata: Schema.Record(Schema.String, Schema.Unknown),
+  always: Schema.Array(Schema.String),
+  tool: Schema.optional(
+    Schema.Struct({
+      messageID: MessageID,
+      callID: Schema.String
+    })
+  )
+}) {}
+
 // Known permission keys get explicit types in the Effect schema for generated
 // docs/types. Runtime config parsing uses Effect's `propertyOrder: "original"`
 // parse option so user key order is preserved for permission precedence.
@@ -44,9 +71,6 @@ const InputObject = Schema.StructWithRest(
     question: Schema.optional(Action),
     webfetch: Schema.optional(Action),
     websearch: Schema.optional(Action),
-    repo_clone: Schema.optional(ConfigRule),
-    repo_overview: Schema.optional(ConfigRule),
-    lsp: Schema.optional(ConfigRule),
     doom_loop: Schema.optional(Action),
     skill: Schema.optional(ConfigRule)
   }),

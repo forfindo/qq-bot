@@ -616,13 +616,13 @@ export function custom(dep: CustomDep): Record<string, CustomLoader> {
         const aiGatewayHeaders = {
           'User-Agent': `openchat/${pkg.version} gitlab-ai-provider/${GITLAB_PROVIDER_VERSION} (${os.platform()} ${os.release()}; ${os.arch()})`,
           'anthropic-beta': 'context-1m-2025-08-07',
-          ...providerConfig?.options?.aiGatewayHeaders
+          ...(providerConfig?.options?.aiGatewayHeaders as object)
         };
 
         const featureFlags = {
           duo_agent_platform_agentic_chat: true,
           duo_agent_platform: true,
-          ...providerConfig?.options?.featureFlags
+          ...(providerConfig?.options?.featureFlags as object)
         };
 
         return {

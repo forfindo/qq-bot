@@ -8,7 +8,8 @@ describe('provider service', () => {
   it('list', async () => {
     const list = await InstanceContext.Instance.restore(
       {
-        uid: '3530766280'
+        uid: '3530766280',
+        owner: '3530766280'
       },
       async () => {
         return await Effect.gen(function* () {
@@ -23,23 +24,8 @@ describe('provider service', () => {
   it('getProvider', async () => {
     const deepseek = await InstanceContext.Instance.restore(
       {
-        uid: '3530766280'
-      },
-      async () => {
-        return await Effect.gen(function* () {
-          const provider = yield* Provider.Service;
-          const id = SchemaProvider.ProviderID.make('deepseek');
-          return yield* provider.getProvider(id);
-        }).pipe(Effect.provide(Provider.defaultLayer), Effect.runPromise);
-      }
-    );
-    expect(Object.keys(deepseek.models).length).toBeTruthy();
-  });
-
-  it('get', async () => {
-    const deepseek = await InstanceContext.Instance.restore(
-      {
-        uid: '3530766280'
+        uid: '3530766280',
+        owner: '3530766280'
       },
       async () => {
         return await Effect.gen(function* () {
