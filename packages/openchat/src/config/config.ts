@@ -264,9 +264,14 @@ export const layer = Layer.effect(
         result.agent = result.agent || {};
         result.mode = result.mode || {};
 
+        const directory = yield* InstanceContext.directory;
         const dirs = unique([
           Global.Path.config,
-          yield* InstanceContext.directory,
+          ...(yield* fs.up({
+            targets: ['.openchat'],
+            start: directory,
+            stop: directory
+          })),
           ...(Flag.CONFIG_DIR ? [Flag.CONFIG_DIR] : [])
         ]);
 

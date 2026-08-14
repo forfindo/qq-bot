@@ -3,7 +3,7 @@ import { SchemaAgent } from '@/schema';
 import { Config } from '@/config';
 import { Skill } from '@/skill';
 import { Provider } from '@/provider';
-import { InstanceContext, ModuleState } from '@/instance';
+import { ModuleState } from '@/instance';
 import { Truncate } from '@/tool';
 import path from 'path';
 import { Global } from '@/utils';
@@ -97,7 +97,7 @@ export const layer = Layer.effect(
                 },
                 edit: {
                   '*': 'deny',
-                  [path.join(yield* InstanceContext.directory, 'plans', '*.md')]: 'allow'
+                  [path.join('.openchat', 'plans', '*.md')]: 'allow'
                 }
               }),
               user
