@@ -2,7 +2,7 @@ import { Context, Effect, Layer } from 'effect';
 import { SchemaModels, SchemaProvider } from '@/schema';
 import { type LanguageModelV3, NoSuchModelError } from '@ai-sdk/provider';
 import { type BundledSDK, resolveSDK } from '@/provider/adapter';
-import { AppFileSystem } from '@/file-system';
+import { AppFileSystem } from '@/file';
 import { ModuleState } from '@/instance';
 import { Config } from '@/config';
 import { Auth } from '@/auth';

@@ -1,4 +1,4 @@
-import { AppFileSystem } from '@/file-system';
+import { AppFileSystem } from '@/file';
 import { Effect } from 'effect';
 import matter from 'gray-matter';
 import { FrontmatterError } from '@/config/error';

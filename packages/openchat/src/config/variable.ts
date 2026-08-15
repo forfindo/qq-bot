@@ -3,7 +3,7 @@ import { Global } from '@/utils';
 import path from 'path';
 import { InvalidError } from '@/config/error';
 import { Effect } from 'effect';
-import { AppFileSystem } from '@/file-system';
+import { AppFileSystem } from '@/file';
 
 type ParseSource =
   | {

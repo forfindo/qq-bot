@@ -1,6 +1,6 @@
 import { Context, Effect, Layer, Option } from 'effect';
 import { SchemaMcp } from '@/schema';
-import { AppFileSystem } from '@/file-system';
+import { AppFileSystem } from '@/file';
 import path from 'path';
 import { Global } from '@/utils';
 

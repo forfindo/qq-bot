@@ -1,6 +1,6 @@
 import { Cause, Context, Duration, Effect, Layer, Option, Schedule } from 'effect';
 import { SchemaAgent, SchemaTool } from '@/schema';
-import { AppFileSystem } from '@/file-system';
+import { AppFileSystem } from '@/file';
 import path from 'path';
 import { Identifier } from '@/id';
 import { Global, Log } from '@/utils';

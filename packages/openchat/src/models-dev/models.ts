@@ -1,6 +1,6 @@
 import { Context, Duration, Effect, Layer, Option } from 'effect';
 import { SchemaModels } from '@/schema';
-import { AppFileSystem } from '@/file-system';
+import { AppFileSystem } from '@/file';
 import { HttpClient, HttpClientRequest, FetchHttpClient } from 'effect/unstable/http';
 import path from 'path';
 import { Flag } from '@/flag';

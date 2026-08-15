@@ -8,7 +8,7 @@ import { Global, Log, TypeGuard } from '@/utils';
 import { Auth } from '@/auth';
 import { substitute } from '@/config/variable';
 import { Flag, setFlag } from '@/flag';
-import { AppFileSystem } from '@/file-system';
+import { AppFileSystem } from '@/file';
 import { jsonc, schema } from '@/config/parse';
 import * as ConfigCommand from './command';
 import * as ConfigAgent from './agent';

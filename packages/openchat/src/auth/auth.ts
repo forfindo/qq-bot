@@ -1,6 +1,6 @@
 import { Context, Effect, Layer, Record, Schema } from 'effect';
 import { SchemaAuth } from '@/schema';
-import { AppFileSystem } from '@/file-system';
+import { AppFileSystem } from '@/file';
 import path from 'path';
 import { Global } from '@/utils';
 import { Flag } from '@/flag';

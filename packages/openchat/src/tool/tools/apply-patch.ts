@@ -1,6 +1,6 @@
 import { Effect, Schema } from 'effect';
 import { define } from '@/tool/tool';
-import { AppFileSystem } from '@/file-system';
+import { AppFileSystem } from '@/file';
 import { Bus } from '@/bus';
 import { SchemaTool } from '@/schema';
 import { InstanceContext } from '@/instance';

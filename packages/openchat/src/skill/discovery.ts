@@ -1,6 +1,6 @@
 import { Context, Effect, Layer } from 'effect';
 import { Global, Log, withTransientReadRetry } from '@/utils';
-import { AppFileSystem } from '@/file-system';
+import { AppFileSystem } from '@/file';
 import {
   FetchHttpClient,
   HttpClient,

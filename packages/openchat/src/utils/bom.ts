@@ -1,5 +1,5 @@
 import { Effect } from 'effect';
-import { AppFileSystem } from '@/file-system';
+import { AppFileSystem } from '@/file';
 
 const BOM_CODE = 0xfeff;
 const BOM = String.fromCharCode(BOM_CODE);

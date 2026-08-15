@@ -7,7 +7,7 @@ import { diffLines, formatPatch, structuredPatch, type StructuredPatch } from 'd
 import path from 'path';
 import { define } from '@/tool/tool';
 import { Effect, Schema, Semaphore } from 'effect';
-import { AppFileSystem } from '@/file-system';
+import { AppFileSystem } from '@/file';
 import { Bus } from '@/bus';
 import DESCRIPTION from './edit.md';
 import { SchemaSnapshot, SchemaTool } from '@/schema';

@@ -83,18 +83,16 @@ export const layer = Layer.effect(
       return yield* Effect.tryPromise({
         try: async () => {
           const entries = await NFS.readdir(dirPath, { withFileTypes: true });
-          return entries.map(
-            (e): DirEntry => ({
-              name: e.name,
-              type: e.isDirectory()
-                ? 'directory'
-                : e.isSymbolicLink()
-                  ? 'symlink'
-                  : e.isFile()
-                    ? 'file'
-                    : 'other'
-            })
-          );
+          return entries.map((e): DirEntry => ({
+            name: e.name,
+            type: e.isDirectory()
+              ? 'directory'
+              : e.isSymbolicLink()
+                ? 'symlink'
+                : e.isFile()
+                  ? 'file'
+                  : 'other'
+          }));
         },
         catch: cause => new SchemaFs.FileSystemError({ method: 'readDirectoryEntries', cause })
       });

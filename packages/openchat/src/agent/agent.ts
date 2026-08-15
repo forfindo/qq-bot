@@ -8,7 +8,7 @@ import { Truncate } from '@/tool';
 import path from 'path';
 import { Global } from '@/utils';
 import { Permission } from '@/permission';
-import { AppFileSystem } from '@/file-system';
+import { AppFileSystem } from '@/file';
 import PROMPT_EXPLORE from './prompt/explore.md';
 import PROMPT_COMPACTION from './prompt/compaction.md';
 import PROMPT_TITLE from './prompt/title.md';

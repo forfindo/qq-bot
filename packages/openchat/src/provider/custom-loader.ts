@@ -1,7 +1,7 @@
 import { SchemaAuth, SchemaConfig, SchemaProvider } from '@/schema';
 import type { LanguageModelV3 } from '@ai-sdk/provider';
 import { Effect } from 'effect';
-import { AppFileSystem } from '@/file-system';
+import { AppFileSystem } from '@/file';
 import { iife, Log, TypeGuard } from '@/utils';
 import { InstanceContext } from '@/instance';
 import pkg from '../../package.json' with { type: 'json' };

@@ -2,7 +2,7 @@ import path from 'path';
 import npa from 'npm-package-arg';
 import { Effect, Context, Layer, Option } from 'effect';
 import { NodeFileSystem } from '@effect/platform-node';
-import { AppFileSystem } from '@/file-system';
+import { AppFileSystem } from '@/file';
 import { Global, Flock, iife } from '@/utils';
 import { makeRuntime } from '@/runtime/runtime';
 import { SchemaNpm } from '@/schema';

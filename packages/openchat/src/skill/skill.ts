@@ -1,7 +1,7 @@
 import { Context, Effect, Layer } from 'effect';
 import { SchemaAgent, SchemaSkill } from '@/schema';
 import { Bus } from '@/bus';
-import { AppFileSystem } from '@/file-system';
+import { AppFileSystem } from '@/file';
 import { Config, ConfigMarkdown } from '@/config';
 import { ModuleState } from '@/instance';
 import { Glob, Global, Log, TypeGuard } from '@/utils';

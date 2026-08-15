@@ -21,7 +21,7 @@ import pkg from '../../package.json' with { type: 'json' };
 import { McpOAuthProvider } from '@/mcp/oauth-provider';
 import { InstanceContext, ModuleState, EffectRunner } from '@/instance';
 import { Config } from '@/config';
-import { AppFileSystem } from '@/file-system';
+import { AppFileSystem } from '@/file';
 import { cancelPending, ensureRunning } from '@/mcp/oauth-callback';
 import { CrossSpawnSpawner } from '@/cross-spawn-spawner';
 

@@ -2,7 +2,7 @@ import path from 'path';
 import { Effect } from 'effect';
 import { SchemaTool } from '@/schema';
 import { InstanceContext } from '@/instance';
-import { AppFileSystem } from '@/file-system';
+import { AppFileSystem } from '@/file';
 
 type Kind = 'file' | 'directory';
 

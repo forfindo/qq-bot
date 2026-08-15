@@ -1,4 +1,4 @@
-import { AppFileSystem } from '@/file-system';
+import { AppFileSystem } from '@/file';
 import { LocalContext } from '@/utils';
 import { Effect } from 'effect';
 import path from 'path';
