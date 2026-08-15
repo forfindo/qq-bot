@@ -34,8 +34,8 @@ const ensureGitignore = () => {
     .then(
       text => {
         const lines = text.split('\n').map(item => item.trim());
-        if (!lines.includes('/.openchat')) {
-          lines.push('/.openchat');
+        if (!lines.includes('/data')) {
+          lines.push('/data');
         }
         if (!lines.includes('/openchat')) {
           lines.push('/openchat');
@@ -44,7 +44,7 @@ const ensureGitignore = () => {
       },
       (err: unknown) => {
         if (isRecord(err) && err.code === 'ENOENT') {
-          return ['/.openchat', '/openchat', '\n'].join('\n');
+          return ['/data', '/openchat', '\n'].join('\n');
         } else {
           throw new Error('ensureGitignore readFile error', {
             cause: err
