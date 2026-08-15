@@ -156,7 +156,7 @@ importers:
         version: 6.0.168(zod@3.25.76)
       ai-gateway-provider:
         specifier: 3.1.2
-        version: 3.1.2(@ai-sdk/openai-compatible@2.0.41(zod@3.25.76))(@ai-sdk/provider-utils@4.0.41(zod@3.25.76))(@ai-sdk/provider@3.0.8)(ai@6.0.168(zod@3.25.76))(zod@3.25.76)
+        version: 3.1.2(@ai-sdk/openai-compatible@2.0.41(zod@3.25.76))(@ai-sdk/provider-utils@4.0.46(zod@3.25.76))(@ai-sdk/provider@3.0.8)(ai@6.0.168(zod@3.25.76))(zod@3.25.76)
       cross-spawn:
         specifier: 7.0.6
         version: 7.0.6
@@ -171,7 +171,7 @@ importers:
         version: 3.1.0
       gitlab-ai-provider:
         specifier: 6.6.0
-        version: 6.6.0(@ai-sdk/provider-utils@4.0.41(zod@3.25.76))(@ai-sdk/provider@3.0.8)(@aws-sdk/credential-provider-node@3.972.76)(@smithy/hash-node@4.4.16)(@smithy/signature-v4@5.6.12)(graphql@16.14.2)(ws@8.21.1)
+        version: 6.6.0(@ai-sdk/provider-utils@4.0.46(zod@3.25.76))(@ai-sdk/provider@3.0.8)(@aws-sdk/credential-provider-node@3.972.76)(@smithy/hash-node@4.4.16)(@smithy/signature-v4@5.6.12)(graphql@16.14.2)(ws@8.21.1)
       glob:
         specifier: 13.0.6
         version: 13.0.6
@@ -196,6 +196,9 @@ importers:
       venice-ai-sdk-provider:
         specifier: 2.0.1
         version: 2.0.1(ai@6.0.168(zod@3.25.76))(zod@3.25.76)
+      which:
+        specifier: ^7.0.0
+        version: 7.0.0
     devDependencies:
       '@types/cross-spawn':
         specifier: ^6.0.6
@@ -209,6 +212,9 @@ importers:
       '@types/npmcli__config':
         specifier: ^6.0.4
         version: 6.0.4(patch_hash=c3d4dfbf1a9a15964abc9b86d13bc1cffd14b54c28c9e28508635fe183246ed5)
+      '@types/which':
+        specifier: ^3.0.4
+        version: 3.0.4
 
   packages/sandbox:
     dependencies:
@@ -266,8 +272,8 @@ packages:
     peerDependencies:
       zod: ^3.25.76 || ^4.1.8
 
-  '@ai-sdk/deepseek@2.0.51':
-    resolution: {integrity: sha512-WqeQDA8HTFRa2RB9dYYMgZ2KxXdICmSV+UPJrspVUcJQPetAJKBH3Ys/ZEmgaGnjqMZEw/EyIYSe09xFETxfZg==}
+  '@ai-sdk/deepseek@2.0.56':
+    resolution: {integrity: sha512-djjZRhY65v4JmQx2nvaAjtEqZxl+9bIn2RryqXsTd3JRD6JQZZo67TA4mhL1+2UIV33a0p2HZotTzetF39dvsw==}
     engines: {node: '>=18'}
     peerDependencies:
       zod: ^3.25.76 || ^4.1.8
@@ -374,8 +380,18 @@ packages:
     peerDependencies:
       zod: ^3.25.76 || ^4.1.8
 
+  '@ai-sdk/provider-utils@4.0.46':
+    resolution: {integrity: sha512-tEtld97plCFiYevsJuOkGkeuhQndeMWFBVrJS4AjnbD5AqrNSXRCe0p+BZ3Cju/sxDeeZ9ym3q9YUV8fASA7aQ==}
+    engines: {node: '>=18.17'}
+    peerDependencies:
+      zod: ^3.25.76 || ^4.1.8
+
   '@ai-sdk/provider@3.0.14':
     resolution: {integrity: sha512-5X1k57JBJ4H7H1QjX7CnJYAB1I19r/trVZTMcSms7/kLNZ8RaU4Nt2agcwZzv82Hfx6Q7/TOLU7agAKeFfc8cA==}
+    engines: {node: '>=18'}
+
+  '@ai-sdk/provider@3.0.15':
+    resolution: {integrity: sha512-XeZW1CcDF2GMbH4wejW6xBRI2QCOgnkVYUnxoeDadB1mf85riL2bMUeDoh+6gJ/r4mjNfzUPW8OjLjvwTP0u1Q==}
     engines: {node: '>=18'}
 
   '@ai-sdk/provider@3.0.8':
@@ -1624,6 +1640,9 @@ packages:
 
   '@types/ssri@7.1.5':
     resolution: {integrity: sha512-odD/56S3B51liILSk5aXJlnYt99S6Rt9EFDDqGtJM26rKHApHcwyU/UoYHrzKkdkHMAIquGWCuHtQTbes+FRQw==}
+
+  '@types/which@3.0.4':
+    resolution: {integrity: sha512-liyfuo/106JdlgSchJzXEQCVArk0CvevqPote8F8HgWgJ3dRCcTHgJIsLDuee0kxk/mhbInzIZk3QWSZJ8R+2w==}
 
   '@types/ws@8.18.1':
     resolution: {integrity: sha512-ThVF6DCVhA8kUGy+aazFQ4kXQ7E1Ty7A3ypFOe0IcJV8O/M511G99AW24irKrW56Wt44yG9+ij8FaqoBGkuBXg==}
@@ -3308,6 +3327,10 @@ packages:
     resolution: {integrity: sha512-raqeBD6NQK4SkWhQzeYKd1KmIG6dllBOTt55Rmkt4HtI9mwdWtJljnrXjAFUBLTSN67HWrOIZ3EPF4kjUw80Bg==}
     engines: {node: '>=14.0'}
 
+  undici@6.28.0:
+    resolution: {integrity: sha512-LIY910g9TI13YS95lrMFrs8Rm/u/irgHeTWoKCoteeJ04CUJ92eEfj0rVn+7VKMPBpUPiUoBKfhNyLI23EE/KA==}
+    engines: {node: '>=18.17'}
+
   undici@8.9.0:
     resolution: {integrity: sha512-aWZpUj7XoGonMClx4gdDRfgBjqeA+F473aDmROQQbM9n6PRfK/u1q/a0X4wMTgcHfT8H6fpbt98PFuDUwFg2YA==}
     engines: {node: '>=22.19.0'}
@@ -3585,10 +3608,10 @@ snapshots:
       '@ai-sdk/provider-utils': 4.0.21(zod@3.25.76)
       zod: 3.25.76
 
-  '@ai-sdk/deepseek@2.0.51(zod@3.25.76)':
+  '@ai-sdk/deepseek@2.0.56(zod@3.25.76)':
     dependencies:
-      '@ai-sdk/provider': 3.0.14
-      '@ai-sdk/provider-utils': 4.0.41(zod@3.25.76)
+      '@ai-sdk/provider': 3.0.15
+      '@ai-sdk/provider-utils': 4.0.46(zod@3.25.76)
       zod: 3.25.76
     optional: true
 
@@ -3709,7 +3732,19 @@ snapshots:
       undici: 5.29.0
       zod: 3.25.76
 
+  '@ai-sdk/provider-utils@4.0.46(zod@3.25.76)':
+    dependencies:
+      '@ai-sdk/provider': 3.0.15
+      '@standard-schema/spec': 1.1.0
+      eventsource-parser: 3.1.0
+      undici: 6.28.0
+      zod: 3.25.76
+
   '@ai-sdk/provider@3.0.14':
+    dependencies:
+      json-schema: 0.4.0
+
+  '@ai-sdk/provider@3.0.15':
     dependencies:
       json-schema: 0.4.0
 
@@ -5036,6 +5071,8 @@ snapshots:
     dependencies:
       '@types/node': 25.9.5
 
+  '@types/which@3.0.4': {}
+
   '@types/ws@8.18.1':
     dependencies:
       '@types/node': 25.9.5
@@ -5191,11 +5228,11 @@ snapshots:
 
   agent-base@9.0.0: {}
 
-  ai-gateway-provider@3.1.2(@ai-sdk/openai-compatible@2.0.41(zod@3.25.76))(@ai-sdk/provider-utils@4.0.41(zod@3.25.76))(@ai-sdk/provider@3.0.8)(ai@6.0.168(zod@3.25.76))(zod@3.25.76):
+  ai-gateway-provider@3.1.2(@ai-sdk/openai-compatible@2.0.41(zod@3.25.76))(@ai-sdk/provider-utils@4.0.46(zod@3.25.76))(@ai-sdk/provider@3.0.8)(ai@6.0.168(zod@3.25.76))(zod@3.25.76):
     dependencies:
       '@ai-sdk/openai-compatible': 2.0.41(zod@3.25.76)
       '@ai-sdk/provider': 3.0.8
-      '@ai-sdk/provider-utils': 4.0.41(zod@3.25.76)
+      '@ai-sdk/provider-utils': 4.0.46(zod@3.25.76)
       ai: 6.0.168(zod@3.25.76)
     optionalDependencies:
       '@ai-sdk/amazon-bedrock': 4.0.96(zod@3.25.76)
@@ -5204,7 +5241,7 @@ snapshots:
       '@ai-sdk/cerebras': 2.0.41(zod@3.25.76)
       '@ai-sdk/cohere': 3.0.27(zod@3.25.76)
       '@ai-sdk/deepgram': 2.0.47(zod@3.25.76)
-      '@ai-sdk/deepseek': 2.0.51(zod@3.25.76)
+      '@ai-sdk/deepseek': 2.0.56(zod@3.25.76)
       '@ai-sdk/elevenlabs': 2.0.47(zod@3.25.76)
       '@ai-sdk/fireworks': 2.0.72(zod@3.25.76)
       '@ai-sdk/google': 3.0.63(zod@3.25.76)
@@ -5820,10 +5857,10 @@ snapshots:
     dependencies:
       resolve-pkg-maps: 1.0.0
 
-  gitlab-ai-provider@6.6.0(@ai-sdk/provider-utils@4.0.41(zod@3.25.76))(@ai-sdk/provider@3.0.8)(@aws-sdk/credential-provider-node@3.972.76)(@smithy/hash-node@4.4.16)(@smithy/signature-v4@5.6.12)(graphql@16.14.2)(ws@8.21.1):
+  gitlab-ai-provider@6.6.0(@ai-sdk/provider-utils@4.0.46(zod@3.25.76))(@ai-sdk/provider@3.0.8)(@aws-sdk/credential-provider-node@3.972.76)(@smithy/hash-node@4.4.16)(@smithy/signature-v4@5.6.12)(graphql@16.14.2)(ws@8.21.1):
     dependencies:
       '@ai-sdk/provider': 3.0.8
-      '@ai-sdk/provider-utils': 4.0.41(zod@3.25.76)
+      '@ai-sdk/provider-utils': 4.0.46(zod@3.25.76)
       '@anthropic-ai/sdk': 0.71.2(zod@3.25.76)
       '@anycable/core': 0.9.2
       graphql-request: 6.1.0(graphql@16.14.2)
@@ -6914,6 +6951,8 @@ snapshots:
   undici@5.29.0:
     dependencies:
       '@fastify/busboy': 2.1.1
+
+  undici@6.28.0: {}
 
   undici@8.9.0: {}
 

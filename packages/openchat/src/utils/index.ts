@@ -10,10 +10,12 @@ import * as Hash from './hash';
 import * as Flock from './flock';
 import * as EffectPromise from './promise';
 import * as Bom from './bom';
+import * as ProcessUtil from './process';
 
 export * from './iife';
 export * from './timeout';
 export * from './effect-http-client';
+export * from './which';
 
 export {
   Wildcard,
@@ -27,5 +29,6 @@ export {
   Hash,
   Flock,
   Bom,
-  EffectPromise
+  EffectPromise,
+  ProcessUtil
 };

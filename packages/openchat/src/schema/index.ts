@@ -16,6 +16,7 @@ import * as SchemaSkill from './skill';
 import * as SchemaTool from './tool';
 import * as SchemaMessage from './message';
 import * as SchemaSnapshot from './snapshot';
+import * as SchemaRipgrep from './ripgrep';
 
 export {
   SchemaAttachment,
@@ -35,5 +36,6 @@ export {
   SchemaSkill,
   SchemaTool,
   SchemaMessage,
-  SchemaSnapshot
+  SchemaSnapshot,
+  SchemaRipgrep
 };
