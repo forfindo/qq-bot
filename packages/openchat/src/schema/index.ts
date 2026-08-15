@@ -15,6 +15,7 @@ import * as SchemaMcp from './mcp';
 import * as SchemaSkill from './skill';
 import * as SchemaTool from './tool';
 import * as SchemaMessage from './message';
+import * as SchemaSnapshot from './snapshot';
 
 export {
   SchemaAttachment,
@@ -33,5 +34,6 @@ export {
   SchemaMcp,
   SchemaSkill,
   SchemaTool,
-  SchemaMessage
+  SchemaMessage,
+  SchemaSnapshot
 };
