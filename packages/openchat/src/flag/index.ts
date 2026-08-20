@@ -29,7 +29,8 @@ const StaticFlag = {
   MODELS_PATH: process.env['MODELS_PATH'],
   DISABLE_MODELS_FETCH: truthy('DISABLE_MODELS_FETCH'),
   DISABLE_EXTERNAL_SKILLS: truthy('DISABLE_EXTERNAL_SKILLS'),
-  DISABLE_CLAUDE_CODE_SKILLS: oneOf('DISABLE_CLAUDE_CODE_SKILLS', 'DISABLE_CLAUDE_CODE')
+  DISABLE_CLAUDE_CODE_SKILLS: oneOf('DISABLE_CLAUDE_CODE_SKILLS', 'DISABLE_CLAUDE_CODE'),
+  DISABLE_CLAUDE_CODE_PROMPT: oneOf('DISABLE_CLAUDE_CODE_PROMPT', 'DISABLE_CLAUDE_CODE')
 };
 
 type STAKey = keyof typeof StaticFlag;
@@ -39,8 +40,8 @@ export const Flag = new Proxy(
     // Static variable
     ...StaticFlag,
     // Dynamic variable
-    get TEST() {
-      return process.env['TEST'];
+    get DISABLE_PROJECT_CONFIG() {
+      return truthy('DISABLE_PROJECT_CONFIG');
     },
     get ENABLE_EXPERIMENTAL_MODELS() {
       return truthy('ENABLE_EXPERIMENTAL_MODELS');
