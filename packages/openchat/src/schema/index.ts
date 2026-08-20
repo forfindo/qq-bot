@@ -17,6 +17,7 @@ import * as SchemaTool from './tool';
 import * as SchemaMessage from './message';
 import * as SchemaSnapshot from './snapshot';
 import * as SchemaRipgrep from './ripgrep';
+import * as SchemaQuestion from './question';
 
 export {
   SchemaAttachment,
@@ -37,5 +38,6 @@ export {
   SchemaTool,
   SchemaMessage,
   SchemaSnapshot,
-  SchemaRipgrep
+  SchemaRipgrep,
+  SchemaQuestion
 };
