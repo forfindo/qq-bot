@@ -46,8 +46,7 @@ export const layer = Layer.effect(
   Service,
   Effect.gen(function* () {
     const afs = yield* AppFileSystem.Service;
-    const global = yield* Global.Service;
-    const directory = (pkg: string) => path.join(global.cache, 'packages', sanitize(pkg));
+    const directory = (pkg: string) => path.join(Global.Path.cache, 'packages', sanitize(pkg));
     const reify = (input: { dir: string; add?: string[] }) =>
       Effect.gen(function* () {
         yield* Flock.effect(`npm-install:${input.dir}`);
@@ -117,7 +116,6 @@ export const layer = Layer.effect(
 
 export const defaultLayer = layer.pipe(
   Layer.provide(AppFileSystem.layer),
-  Layer.provide(Global.layer),
   Layer.provide(NodeFileSystem.layer)
 );
 

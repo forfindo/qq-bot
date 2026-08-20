@@ -1,7 +1,6 @@
 import path from 'path';
 import fs from 'fs/promises';
 import os from 'os';
-import { Context, Layer } from 'effect';
 import { Flag } from '@/flag';
 import { isRecord } from '@/utils/type-guard';
 
@@ -69,39 +68,3 @@ await Promise.all([
   fs.mkdir(Path.repos, { recursive: true }),
   ensureGitignore()
 ]);
-
-export class Service extends Context.Service<Service, Interface>()('@openchat/Global') {}
-
-export interface Interface {
-  readonly home: string;
-  readonly data: string;
-  readonly cache: string;
-  readonly config: string;
-  readonly state: string;
-  readonly tmp: string;
-  readonly bin: string;
-  readonly log: string;
-  readonly repos: string;
-}
-
-export function make(input: Partial<Interface> = {}): Interface {
-  return {
-    home: Path.home,
-    data: Path.data,
-    cache: Path.cache,
-    config: Flag.CONFIG_DIR ?? Path.config,
-    state: Path.state,
-    tmp: Path.tmp,
-    bin: Path.bin,
-    log: Path.log,
-    repos: Path.repos,
-    ...input
-  };
-}
-
-export const layer = Layer.succeed(Service, Service.of(make()));
-
-export const defaultLayer = layer;
-
-export const layerWith = (input: Partial<Interface>) =>
-  Layer.succeed(Service, Service.of(make(input)));

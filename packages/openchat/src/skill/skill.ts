@@ -142,7 +142,6 @@ export const layer = Layer.effect(
     const config = yield* Config.Service;
     const bus = yield* Bus.Service;
     const fs = yield* AppFileSystem.Service;
-    const global = yield* Global.Service;
 
     const discovered = yield* ModuleState.make<DiscoveryState>(
       Effect.fn('Skill.discovery')(
@@ -158,7 +157,7 @@ export const layer = Layer.effect(
             externalDirs.push(AGENTS_EXTERNAL_DIR);
 
             for (const dir of externalDirs) {
-              const root = path.join(global.home, dir);
+              const root = path.join(Global.Path.home, dir);
               if (!(yield* fs.isDir(root))) {
                 continue;
               }
@@ -181,7 +180,9 @@ export const layer = Layer.effect(
 
           const cfg = yield* config.get();
           for (const item of cfg.skills?.paths ?? []) {
-            const expanded = item.startsWith('~/') ? path.join(global.home, item.slice(2)) : item;
+            const expanded = item.startsWith('~/')
+              ? path.join(Global.Path.home, item.slice(2))
+              : item;
             const dir = path.isAbsolute(expanded) ? expanded : path.join(directory, expanded);
             if (!(yield* fs.isDir(dir))) {
               log.warn('skill path not found', { path: dir });
@@ -254,6 +255,5 @@ export const defaultLayer = layer.pipe(
   Layer.provide(AppFileSystem.defaultLayer),
   Layer.provide(Bus.defaultLayer),
   Layer.provide(Config.defaultLayer),
-  Layer.provide(Discovery.defaultLayer),
-  Layer.provide(Global.defaultLayer)
+  Layer.provide(Discovery.defaultLayer)
 );
