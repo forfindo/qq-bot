@@ -12,11 +12,13 @@ import * as EffectPromise from './promise';
 import * as Bom from './bom';
 import * as ProcessUtil from './process';
 import * as MediaUtil from './media';
+import * as ShellUtil from './shell';
 
 export * from './iife';
 export * from './timeout';
 export * from './effect-http-client';
 export * from './which';
+export * from './lazy';
 
 export {
   Wildcard,
@@ -32,5 +34,6 @@ export {
   Bom,
   EffectPromise,
   ProcessUtil,
-  MediaUtil
+  MediaUtil,
+  ShellUtil
 };

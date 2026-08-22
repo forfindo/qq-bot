@@ -124,6 +124,9 @@ export const Info = Schema.Struct({
   $schema: Schema.optional(Schema.String).annotate({
     description: 'JSON schema reference for configuration validation'
   }),
+  shell: Schema.optional(Schema.String).annotate({
+    description: 'Default shell to use for terminal and bash tool'
+  }),
   command: Schema.optional(Schema.Record(Schema.String, SchemaCommand.Info)).annotate({
     description: 'Command configuration, see https://opencode.ai/docs/commands'
   }),

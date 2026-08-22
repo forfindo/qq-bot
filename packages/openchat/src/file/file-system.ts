@@ -313,3 +313,12 @@ export function overlaps(a: string, b: string) {
 export function contains(parent: string, child: string) {
   return !relative(parent, child).startsWith('..');
 }
+
+export function stat(filePath: string) {
+  return Effect.runSync(
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      return yield* fs.stat(filePath);
+    }).pipe(Effect.provide(NodeFileSystem.layer))
+  );
+}

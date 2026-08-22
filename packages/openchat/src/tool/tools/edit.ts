@@ -31,8 +31,8 @@ export const Parameters = Schema.Struct({
 const locks = new Map<string, Semaphore.Semaphore>();
 
 // Similarity thresholds for block anchor fallback matching
-const SINGLE_CANDIDATE_SIMILARITY_THRESHOLD = 0.0;
-const MULTIPLE_CANDIDATES_SIMILARITY_THRESHOLD = 0.3;
+const SINGLE_CANDIDATE_SIMILARITY_THRESHOLD = 0.65;
+const MULTIPLE_CANDIDATES_SIMILARITY_THRESHOLD = 0.65;
 
 const lock = (filePath: string) => {
   const resolvedFilePath = AppFileSystem.resolve(filePath);
