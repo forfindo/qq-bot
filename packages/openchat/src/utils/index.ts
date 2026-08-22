@@ -11,6 +11,7 @@ import * as Flock from './flock';
 import * as EffectPromise from './promise';
 import * as Bom from './bom';
 import * as ProcessUtil from './process';
+import * as MediaUtil from './media';
 
 export * from './iife';
 export * from './timeout';
@@ -30,5 +31,6 @@ export {
   Flock,
   Bom,
   EffectPromise,
-  ProcessUtil
+  ProcessUtil,
+  MediaUtil
 };
