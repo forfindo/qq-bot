@@ -1,5 +1,5 @@
 import { describe, expect } from 'vitest';
-import { Flag, setFlag, setFlags } from '@/flag';
+import { Flag, setFlag, setEnv } from '@/flag';
 
 describe('flag', () => {
   it('setFlag', () => {
@@ -15,7 +15,7 @@ describe('flag', () => {
   });
 
   it('setFlags', () => {
-    setFlags({
+    setEnv({
       CONFIG_DIR: 'test'
     });
     process.env['CONFIG_CONTENT'] = 'hhhhhhhhh';

@@ -37,7 +37,6 @@ const getStaticFlag = () => {
     DISABLE_EXTERNAL_SKILLS: truthy('DISABLE_EXTERNAL_SKILLS'),
     DISABLE_CLAUDE_CODE_SKILLS: some('DISABLE_CLAUDE_CODE_SKILLS', 'DISABLE_CLAUDE_CODE'),
     DISABLE_CLAUDE_CODE_PROMPT: some('DISABLE_CLAUDE_CODE_PROMPT', 'DISABLE_CLAUDE_CODE'),
-    bashDefaultTimeoutMs: positiveInteger('EXPERIMENTAL_BASH_DEFAULT_TIMEOUT_MS'),
     GIT_BASH_PATH: process.env['GIT_BASH_PATH']
   };
 };
@@ -52,7 +51,10 @@ export const Flag = new Proxy(
     ...StaticFlag,
     // Dynamic variable
     DISABLE_PROJECT_CONFIG: truthy('DISABLE_PROJECT_CONFIG'),
-    ENABLE_EXPERIMENTAL_MODELS: truthy('ENABLE_EXPERIMENTAL_MODELS')
+    ENABLE_EXPERIMENTAL_MODELS: truthy('ENABLE_EXPERIMENTAL_MODELS'),
+    BASH_DEFAULT_TIMEOUT_MS: positiveInteger('EXPERIMENTAL_BASH_DEFAULT_TIMEOUT_MS'),
+    ENABLE_EXA: some('EXPERIMENTAL', 'ENABLE_EXA', 'EXPERIMENTAL_EXA'),
+    ENABLE_PARALLEL: some('ENABLE_PARALLEL', 'EXPERIMENTAL_PARALLEL')
   },
   {
     get(target, key): string | undefined {
@@ -85,7 +87,7 @@ export const setFlag = <T extends string>(
   return true;
 };
 
-export const setFlags = (flag: Partial<Flag>) => {
+export const setEnv = (flag: Partial<Flag> & NodeJS.ProcessEnv) => {
   Object.assign(process.env, flag);
   StaticFlag = getStaticFlag();
 };

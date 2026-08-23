@@ -1,0 +1,167 @@
+import { Effect, Schema } from 'effect';
+import { define } from '@/tool/tool';
+import { HttpClient } from 'effect/unstable/http';
+import DESCRIPTION from './websearch.md';
+import { Flag } from '@/flag';
+import { SchemaTool } from '@/schema';
+import {
+  callMcpWebSearch,
+  EXA_URL,
+  PARALLEL_URL,
+  ParallelSearchArgs,
+  SearchArgs
+} from '../mcp-websearch';
+import pkg from '../../../package.json' with { type: 'json' };
+import { Encrypto } from '@/utils';
+
+export const Parameters = Schema.Struct({
+  query: Schema.String.annotate({ description: 'Websearch query' }),
+  numResults: Schema.optional(Schema.Number).annotate({
+    description: 'Number of search results to return (default: 8)'
+  }),
+  livecrawl: Schema.optional(Schema.Literals(['fallback', 'preferred'])).annotate({
+    description:
+      "Live crawl mode - 'fallback': use live crawling as backup if cached content unavailable, 'preferred': prioritize live crawling (default: 'fallback')"
+  }),
+  type: Schema.optional(Schema.Literals(['auto', 'fast', 'deep'])).annotate({
+    description:
+      "Search type - 'auto': balanced search (default), 'fast': quick results, 'deep': comprehensive search"
+  }),
+  contextMaxCharacters: Schema.optional(Schema.Number).annotate({
+    description: 'Maximum characters for context string optimized for LLMs (default: 10000)'
+  })
+});
+
+const _WebSearchProviderSchema = Schema.Literals(['exa', 'parallel']);
+export type WebSearchProvider = Schema.Schema.Type<typeof _WebSearchProviderSchema>;
+
+export function selectWebSearchProvider(
+  sessionID: string,
+  flags = { exa: false, parallel: false }
+): WebSearchProvider {
+  const override = process.env.WEBSEARCH_PROVIDER;
+  if (override === 'exa' || override === 'parallel') {
+    return override;
+  }
+  if (flags.parallel) {
+    return 'parallel';
+  }
+  if (flags.exa) {
+    return 'exa';
+  }
+
+  return Number.parseInt(Encrypto.checksum(sessionID) ?? '0', 36) % 2 === 0 ? 'exa' : 'parallel';
+}
+
+export function webSearchProviderLabel(provider: unknown) {
+  if (provider === 'parallel') {
+    return 'Parallel Web Search';
+  }
+  if (provider === 'exa') {
+    return 'Exa Web Search';
+  }
+  return 'Web Search';
+}
+
+export function webSearchModelName(extra: SchemaTool.Context['extra']) {
+  const model = extra?.model;
+  if (!model || typeof model !== 'object') {
+    return void 0;
+  }
+  const api = 'api' in model && model.api && typeof model.api === 'object' ? model.api : void 0;
+  const apiID = api && 'id' in api && typeof api.id === 'string' ? api.id : void 0;
+  const id = 'id' in model && typeof model.id === 'string' ? model.id : void 0;
+  return (apiID ?? id)?.slice(0, 100);
+}
+
+function parallelAuthHeaders() {
+  const headers = { 'User-Agent': `openchat/${pkg.version}` };
+  if (!process.env.PARALLEL_API_KEY) {
+    return headers;
+  }
+  return { ...headers, Authorization: `Bearer ${process.env.PARALLEL_API_KEY}` };
+}
+
+function callProvider(
+  http: HttpClient.HttpClient,
+  provider: WebSearchProvider,
+  params: Schema.Schema.Type<typeof Parameters>,
+  ctx: SchemaTool.Context
+) {
+  if (provider === 'parallel') {
+    return callMcpWebSearch(
+      http,
+      PARALLEL_URL,
+      'web_search',
+      ParallelSearchArgs,
+      {
+        objective: params.query,
+        search_queries: [params.query],
+        session_id: ctx.sessionID,
+        model_name: webSearchModelName(ctx.extra)
+      },
+      '25 seconds',
+      parallelAuthHeaders()
+    );
+  }
+
+  return callMcpWebSearch(
+    http,
+    EXA_URL,
+    'web_search_exa',
+    SearchArgs,
+    {
+      query: params.query,
+      type: params.type || 'auto',
+      numResults: params.numResults || 8,
+      livecrawl: params.livecrawl || 'fallback',
+      contextMaxCharacters: params.contextMaxCharacters
+    },
+    '25 seconds'
+  );
+}
+
+export const WebSearchTool = define(
+  'websearch',
+  Effect.gen(function* () {
+    const http = yield* HttpClient.HttpClient;
+
+    return {
+      get description() {
+        return DESCRIPTION.replace('{{year}}', new Date().getFullYear().toString());
+      },
+      parameters: Parameters,
+      execute: (params: Schema.Schema.Type<typeof Parameters>, ctx: SchemaTool.Context) =>
+        Effect.gen(function* () {
+          const provider = selectWebSearchProvider(ctx.sessionID, {
+            exa: Flag.ENABLE_EXA,
+            parallel: Flag.ENABLE_PARALLEL
+          });
+          const title = webSearchProviderLabel(provider);
+          yield* ctx.metadata({ title: `${title} "${params.query}"`, metadata: { provider } });
+
+          yield* ctx.ask({
+            permission: 'websearch',
+            patterns: [params.query],
+            always: ['*'],
+            metadata: {
+              query: params.query,
+              numResults: params.numResults,
+              livecrawl: params.livecrawl,
+              type: params.type,
+              contextMaxCharacters: params.contextMaxCharacters,
+              provider
+            }
+          });
+
+          const result = yield* callProvider(http, provider, params, ctx);
+
+          return {
+            output: result ?? 'No search results found. Please try a different query.',
+            title: `${title}: ${params.query}`,
+            metadata: { provider }
+          };
+        }).pipe(Effect.orDie)
+    };
+  })
+);

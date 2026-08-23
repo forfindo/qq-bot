@@ -362,7 +362,7 @@ export const ShellTool = define(
     const spawner = yield* ChildProcessSpawner;
     const truncate = yield* Truncate.Service;
     const fs = yield* AppFileSystem.Service;
-    const defaultTimeoutMs = Flag.bashDefaultTimeoutMs ?? 2 * 60 * 1000;
+    const defaultTimeoutMs = Flag.BASH_DEFAULT_TIMEOUT_MS ?? 2 * 60 * 1000;
 
     const cygpath = Effect.fn('ShellTool.cygpath')(function* (shell: string, text: string) {
       const lines = yield* spawner
