@@ -3,7 +3,8 @@ import { NonNegativeInt, Range, withStatics } from '@/schema/common';
 import { Identifier } from '@/id';
 import { ModelID, ProviderID } from '@/schema/provider';
 import { APIError } from './message-error';
-import { Info, MessageID, SessionID } from './message';
+import { Info, MessageID } from './message';
+import { SessionID } from '@/schema/session';
 
 export const PartID = Schema.String.check(Schema.isStartsWith('prt')).pipe(
   Schema.brand('PartID'),

@@ -1,4 +1,4 @@
-import { SchemaMessage, SchemaQuestion } from '@/schema';
+import { SchemaQuestion, SchemaSession } from '@/schema';
 import { Context, Deferred, Effect, Layer } from 'effect';
 import { Bus } from '@/bus';
 import { ModuleState } from '@/instance';
@@ -17,7 +17,7 @@ interface State {
 
 export interface Interface {
   readonly ask: (input: {
-    sessionID: SchemaMessage.SessionID;
+    sessionID: SchemaSession.SessionID;
     questions: ReadonlyArray<SchemaQuestion.Info>;
     tool?: SchemaQuestion.Tool;
   }) => Effect.Effect<ReadonlyArray<SchemaQuestion.Answer>, SchemaQuestion.RejectedError>;
@@ -55,7 +55,7 @@ export const layer = Layer.effect(
     );
 
     const ask = Effect.fn('Question.ask')(function* (input: {
-      sessionID: SchemaMessage.SessionID;
+      sessionID: SchemaSession.SessionID;
       questions: ReadonlyArray<SchemaQuestion.Info>;
       tool?: SchemaQuestion.Tool;
     }) {

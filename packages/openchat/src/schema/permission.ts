@@ -1,7 +1,8 @@
 import { Schema, SchemaGetter } from 'effect';
 import { NewType } from '@/schema/common';
 import { Identifier } from '@/id';
-import { MessageID, SessionID } from '@/schema/message';
+import { MessageID } from '@/schema/message';
+import { SessionID } from '@/schema/session';
 
 export class PermissionID extends NewType<PermissionID>()(
   'PermissionID',

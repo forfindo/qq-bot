@@ -10,14 +10,7 @@ import {
   StructuredOutputError
 } from './message-error';
 import { FileDiff } from '@/schema/snapshot';
-
-export const SessionID = Schema.String.check(Schema.isStartsWith('ses')).pipe(
-  Schema.brand('SessionID'),
-  withStatics(s => ({
-    descending: (id?: string) => s.make(Identifier.descending('session', id))
-  }))
-);
-export type SessionID = Schema.Schema.Type<typeof SessionID>;
+import { SessionID } from '@/schema/session';
 
 export const MessageID = Schema.String.check(Schema.isStartsWith('msg')).pipe(
   Schema.brand('MessageID'),

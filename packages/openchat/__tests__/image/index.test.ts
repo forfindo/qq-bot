@@ -3,7 +3,8 @@ import { Config } from '@/config';
 import { Image } from '@/image';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { MessageID, PartID, SessionID } from '@/schema/message';
+import { MessageID, PartID } from '@/schema/message';
+import { SessionID } from '@/schema/session';
 
 describe('image service', () => {
   // 图片bytes 528136

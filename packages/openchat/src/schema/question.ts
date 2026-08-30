@@ -1,8 +1,9 @@
 import { Schema } from 'effect';
-import { MessageID, SessionID } from '@/schema/message';
+import { MessageID } from '@/schema/message';
 import { NewType } from '@/schema/common';
 import { Identifier } from '@/id';
 import { BusEvent } from '@/bus';
+import { SessionID } from '@/schema/session';
 
 export class QuestionID extends NewType<QuestionID>()(
   'QuestionID',

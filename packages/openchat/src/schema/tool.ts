@@ -4,6 +4,7 @@ import * as SchemaPermission from '@/schema/permission';
 import * as SchemaMessage from '@/schema/message';
 import { withStatics } from '@/schema/common';
 import { Identifier } from '@/id';
+import { SchemaSession } from '@/schema/index';
 
 const toolIdSchema = Schema.String.check(Schema.isStartsWith('tool')).pipe(Schema.brand('ToolID'));
 
@@ -20,7 +21,7 @@ export interface Metadata {
 }
 
 export type Context<M extends Metadata = Metadata> = {
-  sessionID: SchemaMessage.SessionID;
+  sessionID: SchemaSession.SessionID;
   messageID: SchemaMessage.MessageID;
   agent: string;
   abort: AbortSignal;
