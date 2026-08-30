@@ -309,10 +309,10 @@ export class SQLiteEffectUpdateBase<
           ) as any,
           // eslint-disable-next-line
           from &&
-            // eslint-disable-next-line
             (new Proxy(
               from,
               new SelectionProxyHandler({ sqlAliasedBehavior: 'sql', sqlBehavior: 'sql' })
+              // eslint-disable-next-line
             ) as any)
         );
       }
@@ -352,7 +352,7 @@ export class SQLiteEffectUpdateBase<
       const orderBy = columns[0](
         // eslint-disable-next-line
         new Proxy(
-          getTableColumnsRuntime(this.config.table),
+          getTableColumnsRuntime((this.config satisfies SQLiteUpdateConfig).table),
           new SelectionProxyHandler({ sqlAliasedBehavior: 'alias', sqlBehavior: 'sql' })
           // eslint-disable-next-line
         ) as any

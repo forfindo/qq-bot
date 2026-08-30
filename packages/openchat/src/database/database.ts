@@ -15,7 +15,7 @@ export interface Interface {
 
 export class Service extends Context.Service<Service, Interface>()('@openchat/Database') {}
 
-const layer = Layer.effect(
+export const layer = Layer.effect(
   Service,
   Effect.gen(function* () {
     const db = yield* makeDatabase;

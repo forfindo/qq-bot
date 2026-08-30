@@ -186,7 +186,7 @@ export class SQLiteEffectDeleteBase<
       const orderBy = columns[0](
         // eslint-disable-next-line
         new Proxy(
-          getTableColumnsRuntime(this.config.table),
+          getTableColumnsRuntime((this.config satisfies SQLiteDeleteConfig).table),
           new SelectionProxyHandler({ sqlAliasedBehavior: 'alias', sqlBehavior: 'sql' })
           // eslint-disable-next-line
         ) as any
@@ -214,8 +214,7 @@ export class SQLiteEffectDeleteBase<
   ): SQLiteEffectDeleteReturning<this, TDynamic, TSelectedFields>;
   returning(
     fields: SelectedFieldsFlat = getTableColumnsRuntime(this.table)
-    // eslint-disable-next-line
-  ):
+  ): // eslint-disable-next-line
     | SQLiteEffectDeleteReturning<this, TDynamic, any>
     | SQLiteEffectDeleteReturningAll<this, TDynamic> {
     this.config.returning = orderSelectedFields(fields);
