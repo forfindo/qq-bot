@@ -5,7 +5,7 @@ export class InstallFailedError extends Schema.TaggedErrorClass<InstallFailedErr
   {
     add: Schema.Array(Schema.String).pipe(Schema.optional),
     dir: Schema.String,
-    cause: Schema.optional(Schema.Defect)
+    cause: Schema.optional(Schema.Defect())
   }
 ) {}
 
