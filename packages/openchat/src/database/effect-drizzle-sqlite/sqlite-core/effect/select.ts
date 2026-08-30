@@ -296,7 +296,7 @@ export class SQLiteEffectSelectBase<
 applyEffectWrapper(SQLiteEffectSelectBase);
 
 export type AnySQLiteEffectSelect = SQLiteEffectSelectBase<
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  /* eslint-disable @typescript-eslint/no-explicit-any */
   any,
   any,
   any,
@@ -307,4 +307,5 @@ export type AnySQLiteEffectSelect = SQLiteEffectSelectBase<
   any,
   any,
   any
+  /* eslint-enable @typescript-eslint/no-explicit-any */
 >;
