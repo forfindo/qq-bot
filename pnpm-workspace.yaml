@@ -4,6 +4,8 @@ packages:
 allowBuilds:
   esbuild: true
   msgpackr-extract: true
+  tree-sitter-bash: true
+  tree-sitter-powershell: true
 
 patchedDependencies:
   '@types/npmcli__config@6.0.4': patches/@types__npmcli__config@6.0.4.patch

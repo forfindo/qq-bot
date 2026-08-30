@@ -128,7 +128,7 @@ export class ModelNotFoundError extends Schema.TaggedErrorClass<ModelNotFoundErr
     providerID: ProviderID,
     modelID: ModelID,
     suggestions: Schema.optional(Schema.Array(Schema.String)),
-    cause: Schema.optional(Schema.Defect)
+    cause: Schema.optional(Schema.Defect())
   }
 ) {
   static isInstance(input: unknown): input is ModelNotFoundError {
@@ -138,7 +138,7 @@ export class ModelNotFoundError extends Schema.TaggedErrorClass<ModelNotFoundErr
 
 export class InitError extends Schema.TaggedErrorClass<InitError>()('ProviderInitError', {
   providerID: ProviderID,
-  cause: Schema.optional(Schema.Defect)
+  cause: Schema.optional(Schema.Defect())
 }) {
   static isInstance(input: unknown): input is InitError {
     return input instanceof InitError;
