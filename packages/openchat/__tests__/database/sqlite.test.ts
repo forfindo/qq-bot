@@ -2,7 +2,7 @@ import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 import { Effect } from 'effect';
 import { DatabaseSync } from 'node:sqlite';
 import type { SqlClient as SqlClientService } from 'effect/unstable/sql/SqlClient';
-import { layer } from '@/database/effect-sqlite-node';
+import { layer } from '@/database/sqlite.node';
 import { makeWithDefaults } from '@/database/effect-drizzle-sqlite/effect-sqlite';
 import { describe } from 'vitest';
 import { mkdtemp, rm } from 'node:fs/promises';
