@@ -5,7 +5,7 @@ import { HttpClient, HttpClientRequest, FetchHttpClient } from 'effect/unstable/
 import path from 'path';
 import { Flag } from '@/flag';
 import { Flock, Global, Hash, Log, withTransientReadRetry } from '@/utils';
-import pkg from '../../package.json' with { type: 'json' };
+import { InstallationVersion } from '@/installation/version';
 
 const log = Log.create({ service: 'modelsDev' });
 
@@ -30,7 +30,7 @@ export const layer = Layer.effect(
 
     const fetchApi = Effect.fn('ModelsDev.fetchApi')(function* () {
       return yield* HttpClientRequest.get(`${source}/api.json`).pipe(
-        HttpClientRequest.setHeader('User-Agent', `openchat@${pkg.version}`),
+        HttpClientRequest.setHeader('User-Agent', `openchat@${InstallationVersion}`),
         http.execute,
         Effect.flatMap(res => res.text),
         Effect.timeout('10 seconds')

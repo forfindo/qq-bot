@@ -4,8 +4,8 @@ import { Effect } from 'effect';
 import { AppFileSystem } from '@/file';
 import { iife, Log, TypeGuard } from '@/utils';
 import { InstanceContext } from '@/instance';
-import pkg from '../../package.json' with { type: 'json' };
 import os from 'os';
+import { InstallationVersion } from '@/installation/version';
 
 const log = Log.create({ service: 'provider' });
 
@@ -317,7 +317,8 @@ export function custom(dep: CustomDep): Record<string, CustomLoader> {
 
       // Add custom endpoint if specified (endpoint takes precedence over baseURL)
       const endpoint = (providerConfig?.options?.endpoint ?? providerConfig?.options?.baseURL) as
-        string | undefined;
+        | string
+        | undefined;
       if (endpoint) {
         providerOptions.baseURL = endpoint;
       }
@@ -614,7 +615,7 @@ export function custom(dep: CustomDep): Record<string, CustomLoader> {
         const directory = yield* InstanceContext.directory;
 
         const aiGatewayHeaders = {
-          'User-Agent': `openchat/${pkg.version} gitlab-ai-provider/${GITLAB_PROVIDER_VERSION} (${os.platform()} ${os.release()}; ${os.arch()})`,
+          'User-Agent': `openchat/${InstallationVersion} gitlab-ai-provider/${GITLAB_PROVIDER_VERSION} (${os.platform()} ${os.release()}; ${os.arch()})`,
           'anthropic-beta': 'context-1m-2025-08-07',
           ...(providerConfig?.options?.aiGatewayHeaders as object)
         };
@@ -793,7 +794,7 @@ export function custom(dep: CustomDep): Record<string, CustomLoader> {
         options: {
           apiKey,
           headers: {
-            'User-Agent': `oepnchat/${pkg.version} cloudflare-workers-ai (${os.platform()} ${os.release()}; ${os.arch()})`
+            'User-Agent': `oepnchat/${InstallationVersion} cloudflare-workers-ai (${os.platform()} ${os.release()}; ${os.arch()})`
           }
         },
         getModel(sdk: unknown, modelID: string) {
@@ -878,7 +879,7 @@ export function custom(dep: CustomDep): Record<string, CustomLoader> {
         skipCache: input.options?.skipCache,
         collectLog: input.options?.collectLog,
         headers: {
-          'User-Agent': `openchat/${pkg.version} cloudflare-ai-gateway (${os.platform()} ${os.release()}; ${os.arch()})`
+          'User-Agent': `openchat/${InstallationVersion} cloudflare-ai-gateway (${os.platform()} ${os.release()}; ${os.arch()})`
         }
       };
 

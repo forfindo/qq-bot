@@ -17,13 +17,13 @@ import { dynamicTool, jsonSchema, type JSONSchema7, type Tool } from 'ai';
 import { ChildProcessSpawner, ChildProcess } from 'effect/unstable/process';
 import * as McpAuth from './auth';
 import { Bus } from '@/bus';
-import pkg from '../../package.json' with { type: 'json' };
 import { McpOAuthProvider } from '@/mcp/oauth-provider';
 import { InstanceContext, ModuleState, EffectRunner } from '@/instance';
 import { Config } from '@/config';
 import { AppFileSystem } from '@/file';
 import { cancelPending, ensureRunning } from '@/mcp/oauth-callback';
 import { CrossSpawnSpawner } from '@/cross-spawn-spawner';
+import { InstallationVersion } from '@/installation/version';
 
 // Prompt cache types
 type PromptInfo = Awaited<ReturnType<MCPClient['listPrompts']>>['prompts'][number];
@@ -259,7 +259,7 @@ export const layer = Layer.effect(
      */
     const connectTransport = (transport: Transport, timeout: number) =>
       Effect.acquireUseRelease(
-        Effect.succeed(new MCPClient({ name: 'openchat', version: pkg.version })),
+        Effect.succeed(new MCPClient({ name: 'openchat', version: InstallationVersion })),
         client =>
           Effect.tryPromise({
             try: async () => {
@@ -847,7 +847,7 @@ export const layer = Layer.effect(
       const errers: unknown[] = [];
 
       for (const transport of transports) {
-        const client = new MCPClient({ name: 'openchat', version: pkg.version });
+        const client = new MCPClient({ name: 'openchat', version: InstallationVersion });
         const result = yield* Effect.tryPromise({
           try: async () => {
             await client.connect(transport);

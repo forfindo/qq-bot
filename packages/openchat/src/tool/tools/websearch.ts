@@ -11,8 +11,8 @@ import {
   ParallelSearchArgs,
   SearchArgs
 } from '../mcp-websearch';
-import pkg from '../../../package.json' with { type: 'json' };
 import { Encrypto } from '@/utils';
+import { InstallationVersion } from '@/installation/version';
 
 export const Parameters = Schema.Struct({
   query: Schema.String.annotate({ description: 'Websearch query' }),
@@ -75,7 +75,7 @@ export function webSearchModelName(extra: SchemaTool.Context['extra']) {
 }
 
 function parallelAuthHeaders() {
-  const headers = { 'User-Agent': `openchat/${pkg.version}` };
+  const headers = { 'User-Agent': `openchat/${InstallationVersion}` };
   if (!process.env.PARALLEL_API_KEY) {
     return headers;
   }
