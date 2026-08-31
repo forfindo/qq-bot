@@ -1,7 +1,7 @@
 import { SchemaSession } from '@/schema';
 import { Context, Effect, Layer } from 'effect';
 import { Bus } from '@/bus';
-import { DataBase } from '@/database';
+import { Database } from '@/database';
 import { asc, eq } from 'drizzle-orm';
 import { TodoTable } from '@/database/sql';
 
@@ -19,7 +19,7 @@ export const layer = Layer.effect(
   Service,
   Effect.gen(function* () {
     const bus = yield* Bus.Service;
-    const { db } = yield* DataBase.Service;
+    const { db } = yield* Database.Service;
 
     const update = Effect.fn('Todo.update')(function* (input: {
       sessionID: SchemaSession.SessionID;
@@ -73,5 +73,5 @@ export const layer = Layer.effect(
 
 export const defaultLayer = layer.pipe(
   Layer.provide(Bus.defaultLayer),
-  Layer.provide(DataBase.defaultLayer)
+  Layer.provide(Database.defaultLayer)
 );

@@ -22,7 +22,9 @@ export const make = <A, E = never, R = never>(
         })
     });
 
-    const off = registerDisposer(uid => Effect.runPromise(ScopedCache.invalidate(cache, uid).pipe(Effect.provide(Log.layer))));
+    const off = registerDisposer(uid =>
+      Effect.runPromise(ScopedCache.invalidate(cache, uid).pipe(Effect.provide(Log.layer)))
+    );
     yield* Effect.addFinalizer(() => Effect.sync(off));
 
     return {
@@ -37,7 +39,13 @@ export const get = <A, E, R>(self: ModuleState<A, E, R>) =>
     return yield* ScopedCache.get(self.cache, yield* uid);
   });
 
-export const use = <A, E, R, B>(self: ModuleState<A, E, R>, select: (value: A) => B) => Effect.map(get(self), select);
+export const use = <A, E, R, B>(self: ModuleState<A, E, R>, select: (value: A) => B) =>
+  Effect.map(get(self), select);
+
+export const useEffect = <A, E, R, B, E2, R2>(
+  self: ModuleState<A, E, R>,
+  select: (value: A) => Effect.Effect<B, E2, R2>
+) => Effect.flatMap(get(self), select);
 
 export const invalidate = <A, E, R>(self: ModuleState<A, E, R>) =>
   Effect.gen(function* () {
