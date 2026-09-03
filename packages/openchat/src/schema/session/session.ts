@@ -1,6 +1,63 @@
 import { Schema } from 'effect';
-import { withStatics } from '@/schema/common';
+import {
+  type DeepMutable,
+  NonNegativeInt,
+  optionalOmitUndefined,
+  withStatics
+} from '@/schema/common';
 import { Identifier } from '@/id';
+import { Ruleset } from '@/schema/permission';
+import { Info, MessageID, Part, PartID } from '@/schema/message';
+import { ModelID, ProviderID } from '@/schema/provider';
+import { FileDiff } from '@/schema/snapshot';
+import { define } from '@/bus/bus-event';
+
+// Legacy HTTP accepted negative values here. Keep archive timestamps permissive
+// while excluding non-finite values that cannot round-trip through JSON.
+export const ArchivedTimestamp = Schema.Finite;
+
+export const Metadata = Schema.Record(Schema.String, Schema.Unknown);
+
+const Tokens = Schema.Struct({
+  input: Schema.Finite,
+  output: Schema.Finite,
+  reasoning: Schema.Finite,
+  cache: Schema.Struct({
+    read: Schema.Finite,
+    write: Schema.Finite
+  })
+});
+
+const Time = Schema.Struct({
+  created: NonNegativeInt,
+  updated: NonNegativeInt,
+  compacting: optionalOmitUndefined(NonNegativeInt),
+  archived: optionalOmitUndefined(ArchivedTimestamp)
+});
+
+const Revert = Schema.Struct({
+  messageID: MessageID,
+  partID: optionalOmitUndefined(PartID),
+  snapshot: optionalOmitUndefined(Schema.String),
+  diff: optionalOmitUndefined(Schema.String)
+});
+
+export const Model = Schema.Struct({
+  id: ModelID,
+  providerID: ProviderID,
+  variant: optionalOmitUndefined(Schema.String)
+});
+
+const Summary = Schema.Struct({
+  additions: Schema.Finite,
+  deletions: Schema.Finite,
+  files: Schema.Finite,
+  diffs: optionalOmitUndefined(Schema.Array(FileDiff))
+});
+
+const Share = Schema.Struct({
+  url: Schema.String
+});
 
 export const SessionID = Schema.String.check(Schema.isStartsWith('ses')).pipe(
   Schema.brand('SessionID'),
@@ -9,3 +66,97 @@ export const SessionID = Schema.String.check(Schema.isStartsWith('ses')).pipe(
   }))
 );
 export type SessionID = Schema.Schema.Type<typeof SessionID>;
+
+export const SetMetadataInput = Schema.Struct({
+  sessionID: SessionID,
+  metadata: Metadata
+});
+
+export const SessionInfo = Schema.Struct({
+  id: SessionID,
+  slug: Schema.String,
+  ownerID: Schema.String,
+  parentID: optionalOmitUndefined(SessionID),
+  summary: optionalOmitUndefined(Summary),
+  cost: optionalOmitUndefined(Schema.Finite),
+  tokens: optionalOmitUndefined(Tokens),
+  share: optionalOmitUndefined(Share),
+  title: Schema.String,
+  agent: optionalOmitUndefined(Schema.String),
+  model: optionalOmitUndefined(Model),
+  version: Schema.String,
+  metadata: optionalOmitUndefined(Metadata),
+  time: Time,
+  permission: optionalOmitUndefined(Ruleset),
+  revert: optionalOmitUndefined(Revert)
+}).annotate({ identifier: 'Session' });
+export type SessionInfo = DeepMutable<Schema.Schema.Type<typeof SessionInfo>>;
+
+export const GlobalInfo = Schema.Struct({
+  ...SessionInfo.fields
+}).annotate({ identifier: 'GlobalSession' });
+export type GlobalInfo = DeepMutable<Schema.Schema.Type<typeof GlobalInfo>>;
+
+export const Events = {
+  Created: define(
+    'session.created',
+    Schema.Struct({
+      sessionID: SessionID,
+      info: SessionInfo
+    })
+  ),
+  Updated: define(
+    'session.updated',
+    Schema.Struct({
+      sessionID: SessionID,
+      info: SessionInfo
+    })
+  ),
+  Deleted: define(
+    'session.deleted',
+    Schema.Struct({
+      sessionID: SessionID,
+      info: SessionInfo
+    })
+  ),
+  MessageUpdated: define(
+    'message.updated',
+    Schema.Struct({
+      sessionID: SessionID,
+      info: Info
+    })
+  ),
+  MessageRemoved: define(
+    'message.removed',
+    Schema.Struct({
+      sessionID: SessionID,
+      messageID: MessageID
+    })
+  ),
+  PartUpdated: define(
+    'message.part.updated',
+    Schema.Struct({
+      sessionID: SessionID,
+      part: Part,
+      time: Schema.Finite
+    })
+  ),
+  PartRemoved: define(
+    'message.part.removed',
+    Schema.Struct({
+      sessionID: SessionID,
+      messageID: MessageID,
+      partID: PartID
+    })
+  ),
+  PartDelta: define(
+    'message.part.delta',
+    Schema.Struct({
+      sessionID: SessionID,
+      messageID: MessageID,
+      partID: PartID,
+      field: Schema.String,
+      delta: Schema.String
+    })
+  )
+};

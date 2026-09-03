@@ -13,6 +13,7 @@ import * as Bom from './bom';
 import * as ProcessUtil from './process';
 import * as MediaUtil from './media';
 import * as ShellUtil from './shell';
+import * as Slug from './slug';
 
 export * from './iife';
 export * from './timeout';
@@ -32,6 +33,7 @@ export {
   Hash,
   Flock,
   Bom,
+  Slug,
   EffectPromise,
   ProcessUtil,
   MediaUtil,

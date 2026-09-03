@@ -1,4 +1,4 @@
-import { Effect, Schema, Types } from 'effect';
+import { Effect, Schema, SchemaGetter, Types } from 'effect';
 import { NonNegativeInt, withStatics } from '@/schema/common';
 import { Identifier } from '@/id';
 import { ModelID, ProviderID } from '@/schema/provider';
@@ -122,3 +122,26 @@ export const Info = Schema.Union([User, Assistant]).annotate({
   identifier: 'Message'
 });
 export type Info = User | Assistant;
+
+const _Cursor = Schema.Struct({
+  id: MessageID,
+  time: Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0))
+});
+
+export const Cursor = _Cursor.pipe(
+  Schema.encodeTo(Schema.String, {
+    decode: SchemaGetter.transform((input: string) =>
+      Schema.decodeUnknownSync(_Cursor)(
+        JSON.parse(Buffer.from(input, 'base64url').toString('utf8'))
+      )
+    ),
+    encode: SchemaGetter.transform(input =>
+      Buffer.from(JSON.stringify(input)).toString('base64url')
+    )
+  })
+);
+export type Cursor = typeof Cursor.Type;
+
+export const decodeCursor = Schema.decodeUnknownSync(Cursor);
+
+export const encodeCursor = Schema.encodeSync(Cursor);

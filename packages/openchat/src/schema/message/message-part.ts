@@ -257,7 +257,7 @@ export const CompactionPart = Schema.Struct({
 }).annotate({ identifier: 'CompactionPart' });
 export type CompactionPart = Types.DeepMutable<Schema.Schema.Type<typeof CompactionPart>>;
 
-export const MessagePart = Schema.Union([
+export const Part = Schema.Union([
   TextPart,
   SubtaskPart,
   ReasoningPart,
@@ -287,7 +287,7 @@ export type Part =
 
 export const WithParts = Schema.Struct({
   info: Info,
-  parts: Schema.Array(MessagePart)
+  parts: Schema.Array(Part)
 });
 export type WithParts = {
   info: Info;

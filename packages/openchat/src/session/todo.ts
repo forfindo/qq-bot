@@ -3,7 +3,7 @@ import { Context, Effect, Layer } from 'effect';
 import { Bus } from '@/bus';
 import { Database } from '@/database';
 import { asc, eq } from 'drizzle-orm';
-import { TodoTable } from '@/database/sql';
+import { TodoTable } from '@/database/sql/session.sql';
 
 export interface Interface {
   readonly update: (input: {
