@@ -98,7 +98,7 @@ export const TaskTool = define(
       const runInBackground = params.background === true;
       if (runInBackground && !Flag.EXPERIMENTAL_BACKGROUND_SUBAGENTS) {
         return yield* Effect.fail(
-          new Error('Background subagents require OPENCODE_EXPERIMENTAL_BACKGROUND_SUBAGENTS=true')
+          new Error('Background subagents require EXPERIMENTAL_BACKGROUND_SUBAGENTS=true')
         );
       }
 
