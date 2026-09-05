@@ -56,7 +56,7 @@ const hydrate = (db: Database.Interface['db'], rows: (typeof MessageTable.$infer
   });
 };
 
-export const page = Effect.fn('MessageV2.page')(function* (input: {
+export const page = Effect.fn('Message.page')(function* (input: {
   sessionID: SchemaSession.SessionID;
   limit: number;
   before?: string;
@@ -100,5 +100,39 @@ export const page = Effect.fn('MessageV2.page')(function* (input: {
     more,
     cursor:
       more && tail ? SchemaMessage.encodeCursor({ id: tail.id, time: tail.time_created }) : void 0
+  };
+});
+
+export function parts(messageID: SchemaMessage.MessageID) {
+  return Effect.gen(function* () {
+    const { db } = yield* Database.Service;
+    const rows = yield* db
+      .select()
+      .from(PartTable)
+      .where(eq(PartTable.message_id, messageID))
+      .orderBy(PartTable.id)
+      .all()
+      .pipe(Effect.orDie);
+    return rows.map(part);
+  });
+}
+
+export const get = Effect.fn('MessageV2.get')(function* (input: {
+  sessionID: SchemaSession.SessionID;
+  messageID: SchemaMessage.MessageID;
+}) {
+  const { db } = yield* Database.Service;
+  const row = yield* db
+    .select()
+    .from(MessageTable)
+    .where(and(eq(MessageTable.id, input.messageID), eq(MessageTable.session_id, input.sessionID)))
+    .get()
+    .pipe(Effect.orDie);
+  if (!row) {
+    return yield* new NotFoundError({ message: `Message not found: ${input.messageID}` });
+  }
+  return {
+    info: info(row),
+    parts: yield* parts(input.messageID)
   };
 });

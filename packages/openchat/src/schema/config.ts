@@ -152,6 +152,10 @@ export const Info = Schema.Struct({
       })
     })
   ),
+  subagent_depth: Schema.optional(NonNegativeInt).annotate({
+    description:
+      'Maximum subagent nesting depth. Defaults to 1, which prevents subagents from launching subagents.'
+  }),
   disabled_providers: Schema.optional(Schema.mutable(Schema.Array(Schema.String))).annotate({
     description: 'Disable providers that are loaded automatically'
   }),
@@ -240,6 +244,9 @@ export const Info = Schema.Struct({
     Schema.Struct({
       mcp_timeout: Schema.optional(PositiveInt).annotate({
         description: 'Timeout in milliseconds for model context protocol (MCP) requests'
+      }),
+      primary_tools: Schema.optional(Schema.mutable(Schema.Array(Schema.String))).annotate({
+        description: 'Tools that should only be available to primary agents.'
       })
     })
   )

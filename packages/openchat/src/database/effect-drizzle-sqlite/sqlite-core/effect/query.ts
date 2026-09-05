@@ -23,7 +23,7 @@ export class SQLiteEffectRelationalQueryBuilder<
   TFields extends TableRelationalConfig,
   TEffectHKT extends QueryEffectHKTBase = QueryEffectHKTBase
 > {
-  static readonly [entityKind]: string = 'SQLiteEffectRelationalQueryBuilderV2';
+  static readonly [entityKind]: string = 'SQLiteEffectRelationalQueryBuilder';
 
   constructor(
     private schema: TSchema,
@@ -87,7 +87,7 @@ export class SQLiteEffectRelationalQuery<
 >
   implements RunnableQuery<TResult, 'sqlite'>, SQLWrapper
 {
-  static readonly [entityKind]: string = 'SQLiteEffectRelationalQueryV2';
+  static readonly [entityKind]: string = 'SQLiteEffectRelationalQuery';
 
   declare readonly _: {
     readonly dialect: 'sqlite';

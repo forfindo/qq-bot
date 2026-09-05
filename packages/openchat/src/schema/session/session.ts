@@ -1,4 +1,4 @@
-import { Schema } from 'effect';
+import { Effect, Schema } from 'effect';
 import {
   type DeepMutable,
   NonNegativeInt,
@@ -7,7 +7,16 @@ import {
 } from '@/schema/common';
 import { Identifier } from '@/id';
 import { Ruleset } from '@/schema/permission';
-import { Info, MessageID, Part, PartID } from '@/schema/message';
+import {
+  AgentPartInput,
+  FilePartInput,
+  Info,
+  MessageID,
+  Part,
+  PartID,
+  SubtaskPartInput,
+  TextPartInput
+} from '@/schema/message';
 import { ModelID, ProviderID } from '@/schema/provider';
 import { FileDiff } from '@/schema/snapshot';
 import { define } from '@/bus/bus-event';
@@ -96,6 +105,51 @@ export const GlobalInfo = Schema.Struct({
   ...SessionInfo.fields
 }).annotate({ identifier: 'GlobalSession' });
 export type GlobalInfo = DeepMutable<Schema.Schema.Type<typeof GlobalInfo>>;
+
+export class OutputFormatText extends Schema.Class<OutputFormatText>('OutputFormatText')({
+  type: Schema.Literal('text')
+}) {}
+
+export class OutputFormatJsonSchema extends Schema.Class<OutputFormatJsonSchema>(
+  'OutputFormatJsonSchema'
+)({
+  type: Schema.Literal('json_schema'),
+  schema: Schema.Record(Schema.String, Schema.Any).annotate({ identifier: 'JSONSchema' }),
+  retryCount: NonNegativeInt.pipe(Schema.optional, Schema.withDecodingDefault(Effect.succeed(2)))
+}) {}
+
+export const Format = Schema.Union([OutputFormatText, OutputFormatJsonSchema]).annotate({
+  discriminator: 'type',
+  identifier: 'OutputFormat'
+});
+
+export type OutputFormat = Schema.Schema.Type<typeof Format>;
+
+const ModelRef = Schema.Struct({
+  providerID: ProviderID,
+  modelID: ModelID
+});
+
+export const PromptInput = Schema.Struct({
+  sessionID: SessionID,
+  messageID: Schema.optional(MessageID),
+  model: Schema.optional(ModelRef),
+  agent: Schema.optional(Schema.String),
+  noReply: Schema.optional(Schema.Boolean),
+  tools: Schema.optional(Schema.Record(Schema.String, Schema.Boolean)).annotate({
+    description:
+      '@deprecated tools and permissions have been merged, you can set permissions on the session itself now'
+  }),
+  format: Schema.optional(Format),
+  system: Schema.optional(Schema.String),
+  variant: Schema.optional(Schema.String),
+  parts: Schema.Array(
+    Schema.Union([TextPartInput, FilePartInput, AgentPartInput, SubtaskPartInput]).annotate({
+      discriminator: 'type'
+    })
+  )
+});
+export type PromptInput = Schema.Schema.Type<typeof PromptInput>;
 
 export const Events = {
   Created: define(

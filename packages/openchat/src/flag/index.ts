@@ -22,6 +22,20 @@ const positiveInteger = (key: string) => {
   return Number.isInteger(value) && value > 0 ? value : void 0;
 };
 
+type DynamicValue = () => boolean | number | undefined;
+
+const truthyFn = (key: string) => {
+  return (() => truthy(key)) satisfies DynamicValue;
+};
+
+const someFn = (...keys: string[]) => {
+  return (() => some(...keys)) satisfies DynamicValue;
+};
+
+const positiveIntegerFn = (key: string) => {
+  return (() => positiveInteger(key)) satisfies DynamicValue;
+};
+
 const getStaticFlag = () => {
   return {
     CONFIG_DIR: process.env['CONFIG_DIR'],
@@ -46,21 +60,24 @@ let StaticFlag = getStaticFlag();
 
 type STAKey = keyof typeof StaticFlag;
 
-export const Flag = new Proxy(
+const _Flag = new Proxy(
   {
     // Static variable,
     ...StaticFlag,
     // Dynamic variable
-    DISABLE_PROJECT_CONFIG: truthy('DISABLE_PROJECT_CONFIG'),
-    ENABLE_EXPERIMENTAL_MODELS: truthy('ENABLE_EXPERIMENTAL_MODELS'),
-    BASH_DEFAULT_TIMEOUT_MS: positiveInteger('EXPERIMENTAL_BASH_DEFAULT_TIMEOUT_MS'),
-    ENABLE_EXA: some('EXPERIMENTAL', 'ENABLE_EXA', 'EXPERIMENTAL_EXA'),
-    ENABLE_PARALLEL: some('ENABLE_PARALLEL', 'EXPERIMENTAL_PARALLEL')
+    DISABLE_PROJECT_CONFIG: truthyFn('DISABLE_PROJECT_CONFIG'),
+    ENABLE_EXPERIMENTAL_MODELS: truthyFn('ENABLE_EXPERIMENTAL_MODELS'),
+    BASH_DEFAULT_TIMEOUT_MS: positiveIntegerFn('EXPERIMENTAL_BASH_DEFAULT_TIMEOUT_MS'),
+    ENABLE_EXA: someFn('EXPERIMENTAL', 'ENABLE_EXA', 'EXPERIMENTAL_EXA'),
+    ENABLE_PARALLEL: someFn('ENABLE_PARALLEL', 'EXPERIMENTAL_PARALLEL'),
+    EXPERIMENTAL_BACKGROUND_SUBAGENTS: someFn('EXPERIMENTAL', 'EXPERIMENTAL_BACKGROUND_SUBAGENTS')
   },
   {
-    get(target, key): string | undefined {
+    get(target, key, receiver): string | boolean | undefined {
       if (Object.hasOwn(StaticFlag, key)) {
-        return Reflect.get(StaticFlag, key) as string | undefined;
+        return Reflect.get(StaticFlag, key) as string | boolean | undefined;
+      } else if (Object.hasOwn(target, key)) {
+        return (Reflect.get(target, key, receiver) as () => boolean | undefined)();
       }
       return process.env[key.toString()];
     },
@@ -73,8 +90,13 @@ export const Flag = new Proxy(
   }
 );
 
-type Flag = typeof Flag;
-export type FlagKey = keyof Flag;
+type TypeFlag = typeof _Flag;
+export type FlagKey = keyof TypeFlag;
+type Flag = {
+  [key in FlagKey]: TypeFlag[key] extends DynamicValue ? ReturnType<TypeFlag[key]> : TypeFlag[key];
+};
+
+export const Flag = _Flag as unknown as Flag;
 
 export const setFlag = <T extends string>(
   key: Exclude<T, STAKey>,
