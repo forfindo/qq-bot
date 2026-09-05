@@ -23,7 +23,8 @@ const hasTaskTool = (agent?: SchemaAgent.Info) => {
 };
 
 export type Result =
-  { content: string; truncated: false } | { content: string; truncated: true; outputPath: string };
+  | { content: string; truncated: false }
+  | { content: string; truncated: true; outputPath: string };
 
 export interface Options {
   maxLines?: number;

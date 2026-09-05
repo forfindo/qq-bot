@@ -3,7 +3,8 @@ import { PositiveInt } from '@/schema/common';
 
 export const Image = Schema.Struct({
   auto_resize: Schema.optional(Schema.Boolean).annotate({
-    description: 'Resize images before sending them to the model when they exceed configured limits (default: true)'
+    description:
+      'Resize images before sending them to the model when they exceed configured limits (default: true)'
   }),
   max_width: Schema.optional(PositiveInt).annotate({
     description: 'Maximum image width before resizing or rejecting the attachment (default: 2000)'

@@ -14,7 +14,11 @@ describe('config parser', () => {
         'test.jonsc'
       );
     }).pipe(Effect.runSync);
-    expect(obj).toStrictEqual({ name: 'test_name', abc: 12345, config: { test: 'name', ddd: 'query' } });
+    expect(obj).toStrictEqual({
+      name: 'test_name',
+      abc: 12345,
+      config: { test: 'name', ddd: 'query' }
+    });
   });
 
   it('jsonc: comment', () => {
@@ -30,7 +34,11 @@ describe('config parser', () => {
         'test.jonsc'
       );
     }).pipe(Effect.runSync);
-    expect(obj).toStrictEqual({ name: 'test_name', abc: 12345, config: { test: 'name', ddd: 'query' } });
+    expect(obj).toStrictEqual({
+      name: 'test_name',
+      abc: 12345,
+      config: { test: 'name', ddd: 'query' }
+    });
   });
 
   it('jsonc: invalidate', () => {

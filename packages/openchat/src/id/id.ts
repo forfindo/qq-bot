@@ -27,7 +27,11 @@ export function descending(prefix: keyof typeof prefixes, given?: string) {
   return generateID(prefix, 'descending', given);
 }
 
-function generateID(prefix: keyof typeof prefixes, direction: 'descending' | 'ascending', given?: string): string {
+function generateID(
+  prefix: keyof typeof prefixes,
+  direction: 'descending' | 'ascending',
+  given?: string
+): string {
   if (!given) {
     return create(prefixes[prefix], direction);
   }
@@ -48,7 +52,11 @@ function randomBase62(length: number): string {
   return result;
 }
 
-export function create(prefix: string, direction: 'descending' | 'ascending', timestamp?: number): string {
+export function create(
+  prefix: string,
+  direction: 'descending' | 'ascending',
+  timestamp?: number
+): string {
   const currentTimestamp = timestamp ?? Date.now();
 
   if (currentTimestamp !== lastTimestamp) {

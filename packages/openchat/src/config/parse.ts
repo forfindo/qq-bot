@@ -1,4 +1,8 @@
-import { type ParseError as JsoncParseError, parse as parseJsoncImpl, printParseErrorCode } from 'jsonc-parser';
+import {
+  type ParseError as JsoncParseError,
+  parse as parseJsoncImpl,
+  printParseErrorCode
+} from 'jsonc-parser';
 import { Cause, Effect, Exit, Schema as EffectSchema, SchemaIssue } from 'effect';
 import type { DeepMutable } from '@/schema/common';
 import { InvalidError, JsonError } from './error';
@@ -33,7 +37,11 @@ export const jsonc = Effect.fnUntraced(function* (text: string, filepath: string
   return data;
 });
 
-export const schema = Effect.fnUntraced(function* <S extends EffectSchema.Decoder<unknown, never>>(schema: S, data: unknown, source: string) {
+export const schema = Effect.fnUntraced(function* <S extends EffectSchema.Decoder<unknown, never>>(
+  schema: S,
+  data: unknown,
+  source: string
+) {
   const decoded = EffectSchema.decodeUnknownExit(schema)(data, {
     errors: 'all',
     propertyOrder: 'original',

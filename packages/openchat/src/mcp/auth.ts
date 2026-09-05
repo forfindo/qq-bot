@@ -46,8 +46,8 @@ export const layer = Layer.effect(
 
     const all: () => Effect.Effect<SchemaMcp.AuthData> = Effect.fn('McpAuth.all')(function* () {
       return yield* fs.readJson(filepath).pipe(
-        Effect.map((data): SchemaMcp.AuthData =>
-          Option.getOrElse(SchemaMcp.decodeAuthData(data), () => ({}))
+        Effect.map(
+          (data): SchemaMcp.AuthData => Option.getOrElse(SchemaMcp.decodeAuthData(data), () => ({}))
         ),
         Effect.catch(() => Effect.succeed({}))
       );
