@@ -2,8 +2,8 @@ import { Schema } from 'effect';
 import { MessageID } from '@/schema/message';
 import { NewType } from '@/schema/common';
 import { Identifier } from '@/id';
-import { BusEvent } from '@/bus';
 import { SessionID } from '@/schema/session';
+import { define } from '@/schema/event';
 
 export class QuestionID extends NewType<QuestionID>()(
   'QuestionID',
@@ -88,7 +88,7 @@ class Rejected extends Schema.Class<Rejected>('QuestionRejected')({
   requestID: QuestionID
 }) {}
 export const Event = {
-  Asked: BusEvent.define('question.asked', Request),
-  Replied: BusEvent.define('question.replied', Replied),
-  Rejected: BusEvent.define('question.rejected', Rejected)
+  Asked: define({ type: 'question.asked', schema: Request }),
+  Replied: define({ type: 'question.replied', schema: Replied }),
+  Rejected: define({ type: 'question.rejected', schema: Rejected })
 };

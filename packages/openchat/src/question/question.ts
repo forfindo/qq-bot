@@ -1,6 +1,6 @@
 import { SchemaQuestion, SchemaSession } from '@/schema';
 import { Context, Deferred, Effect, Layer } from 'effect';
-import { Bus } from '@/bus';
+import { Event } from '@/event';
 import { ModuleState } from '@/instance';
 import { Log } from '@/utils';
 
@@ -34,7 +34,7 @@ export class Service extends Context.Service<Service, Interface>()('@openchat/Qu
 export const layer = Layer.effect(
   Service,
   Effect.gen(function* () {
-    const bus = yield* Bus.Service;
+    const bus = yield* Event.Service;
     const state = yield* ModuleState.make<State>(
       Effect.fn('Question.state')(function* () {
         const state = {

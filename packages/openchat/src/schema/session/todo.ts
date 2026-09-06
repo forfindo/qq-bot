@@ -1,6 +1,6 @@
 import { Schema } from 'effect';
-import { BusEvent } from '@/bus';
 import { SessionID } from './session';
+import { define } from '@/schema/event';
 
 export const TodoInfo = Schema.Struct({
   content: Schema.String.annotate({ description: 'Brief description of the task' }),
@@ -14,10 +14,10 @@ export const TodoInfo = Schema.Struct({
 export type TodoInfo = Schema.Schema.Type<typeof TodoInfo>;
 
 // TODO: Event
-export const TodoUpdated = BusEvent.define(
-  'todo.updated',
-  Schema.Struct({
+export const TodoUpdated = define({
+  type: 'todo.updated',
+  schema: Schema.Struct({
     sessionID: SessionID,
     todos: Schema.Array(TodoInfo)
   })
-);
+});

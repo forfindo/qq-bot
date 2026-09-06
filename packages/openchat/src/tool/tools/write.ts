@@ -1,7 +1,7 @@
 import { Effect, Schema } from 'effect';
 import { define } from '../tool';
 import { AppFileSystem } from '@/file';
-import { Bus } from '@/bus';
+import { Event } from '@/event';
 import DESCRIPTION from './write.md';
 import { InstanceContext } from '@/instance';
 import path from 'path';
@@ -22,7 +22,7 @@ export const WriteTool = define(
   'write',
   Effect.gen(function* () {
     const fs = yield* AppFileSystem.Service;
-    const bus = yield* Bus.Service;
+    const bus = yield* Event.Service;
 
     return {
       description: DESCRIPTION,

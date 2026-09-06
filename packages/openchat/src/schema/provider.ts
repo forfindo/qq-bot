@@ -88,6 +88,16 @@ export type ProviderID = typeof ProviderID.Type;
 export const ModelID = Schema.String.pipe(Schema.brand('ModelID'));
 export type ModelID = typeof ModelID.Type;
 
+export const VariantID = Schema.String.pipe(Schema.brand('VariantID'));
+export type VariantID = typeof VariantID.Type;
+
+export const ModelRef = Schema.Struct({
+  providerID: ProviderID,
+  modelID: ModelID,
+  variant: VariantID.pipe(optionalOmitUndefined)
+}).annotate({ identifier: 'Model.Ref' });
+export type ModelRef = typeof ModelRef.Type;
+
 export const ModelStatus = Schema.Literals(['alpha', 'beta', 'deprecated', 'active']);
 export type ModelStatus = typeof ModelStatus.Type;
 

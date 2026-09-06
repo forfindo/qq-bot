@@ -1,4 +1,4 @@
-import { Effect, Schema, SchemaGetter, Types } from 'effect';
+import { Schema, SchemaGetter, Types } from 'effect';
 import { NonNegativeInt, withStatics } from '@/schema/common';
 import { Identifier } from '@/id';
 import { ModelID, ProviderID } from '@/schema/provider';
@@ -10,7 +10,7 @@ import {
   StructuredOutputError
 } from './message-error';
 import { FileDiff } from '@/schema/snapshot';
-import { SessionID } from '@/schema/session';
+import { Format, SessionID } from '@/schema/session';
 
 export const MessageID = Schema.String.check(Schema.isStartsWith('msg')).pipe(
   Schema.brand('MessageID'),
@@ -73,24 +73,6 @@ export const Assistant = Schema.Struct({
 export type Assistant = Omit<Types.DeepMutable<Schema.Schema.Type<typeof Assistant>>, 'error'> & {
   error?: AssistantError;
 };
-
-export class OutputFormatText extends Schema.Class<OutputFormatText>('OutputFormatText')({
-  type: Schema.Literal('text')
-}) {}
-
-export class OutputFormatJsonSchema extends Schema.Class<OutputFormatJsonSchema>(
-  'OutputFormatJsonSchema'
-)({
-  type: Schema.Literal('json_schema'),
-  schema: Schema.Record(Schema.String, Schema.Any).annotate({ identifier: 'JSONSchema' }),
-  retryCount: NonNegativeInt.pipe(Schema.optional, Schema.withDecodingDefault(Effect.succeed(2)))
-}) {}
-
-export const Format = Schema.Union([OutputFormatText, OutputFormatJsonSchema]).annotate({
-  discriminator: 'type',
-  identifier: 'OutputFormat'
-});
-export type OutputFormat = Schema.Schema.Type<typeof Format>;
 
 export const User = Schema.Struct({
   ...messageBase,

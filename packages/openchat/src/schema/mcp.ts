@@ -1,7 +1,7 @@
 import { Schema } from 'effect';
 import { PositiveInt } from '@/schema/common';
 import { NamedError } from '@/utils/error';
-import { BusEvent } from '@/bus';
+import { define } from '@/schema/event';
 
 export const Local = Schema.Struct({
   type: Schema.Literal('local').annotate({ description: 'Type of MCP server connection' }),
@@ -133,17 +133,17 @@ export const Failed = NamedError.create('MCPFailed', {
 });
 
 // TODO: Event
-export const ToolsChanged = BusEvent.define(
-  'mcp.tools.changed',
-  Schema.Struct({
+export const ToolsChanged = define({
+  type: 'mcp.tools.changed',
+  schema: Schema.Struct({
     server: Schema.String
   })
-);
+});
 
-export const BrowserOpenFailed = BusEvent.define(
-  'mcp.browser.open.failed',
-  Schema.Struct({
+export const BrowserOpenFailed = define({
+  type: 'mcp.browser.open.failed',
+  schema: Schema.Struct({
     mcpName: Schema.String,
     url: Schema.String
   })
-);
+});

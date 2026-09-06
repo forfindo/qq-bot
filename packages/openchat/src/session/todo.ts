@@ -1,6 +1,6 @@
 import { SchemaSession } from '@/schema';
 import { Context, Effect, Layer } from 'effect';
-import { Bus } from '@/bus';
+import { Event } from '@/event';
 import { Database } from '@/database';
 import { asc, eq } from 'drizzle-orm';
 import { TodoTable } from '@/database/sql/session.sql';
@@ -18,7 +18,7 @@ export class Service extends Context.Service<Service, Interface>()('@openchat/Se
 export const layer = Layer.effect(
   Service,
   Effect.gen(function* () {
-    const bus = yield* Bus.Service;
+    const bus = yield* Event.Service;
     const { db } = yield* Database.Service;
 
     const update = Effect.fn('Todo.update')(function* (input: {
@@ -72,6 +72,6 @@ export const layer = Layer.effect(
 );
 
 export const defaultLayer = layer.pipe(
-  Layer.provide(Bus.defaultLayer),
+  Layer.provide(Event.defaultLayer),
   Layer.provide(Database.defaultLayer)
 );

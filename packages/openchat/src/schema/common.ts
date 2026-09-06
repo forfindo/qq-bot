@@ -1,4 +1,4 @@
-import { Option, Schema, SchemaGetter } from 'effect';
+import { DateTime, Option, Schema, SchemaGetter } from 'effect';
 
 /**
  * Integer greater than zero.
@@ -121,3 +121,16 @@ export const NewType = <Self>() => {
       };
   };
 };
+
+export const DateTimeUtcFromMillis = Schema.Finite.pipe(
+  Schema.decodeTo(Schema.DateTimeUtc, {
+    decode: SchemaGetter.transform(value => DateTime.makeUnsafe(value)),
+    encode: SchemaGetter.transform(value => DateTime.toEpochMillis(value))
+  })
+);
+
+export const RelativePath = Schema.String.pipe(Schema.brand('RelativePath'));
+export type RelativePath = typeof RelativePath.Type;
+
+export const AbsolutePath = Schema.String.pipe(Schema.brand('AbsolutePath'));
+export type AbsolutePath = typeof AbsolutePath.Type;

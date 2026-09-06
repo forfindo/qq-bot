@@ -1,7 +1,7 @@
 import { Effect, Schema } from 'effect';
 import { define } from '@/tool/tool';
 import { AppFileSystem } from '@/file';
-import { Bus } from '@/bus';
+import { Event } from '@/event';
 import { SchemaTool } from '@/schema';
 import { InstanceContext } from '@/instance';
 import { deriveNewContentsFromChunks, type Hunk, parsePatch } from '@/tool/patch';
@@ -22,7 +22,7 @@ export const ApplyPatchTool = define(
   'apply_patch',
   Effect.gen(function* () {
     const fs = yield* AppFileSystem.Service;
-    const bus = yield* Bus.Service;
+    const bus = yield* Event.Service;
 
     const run = Effect.fn('ApplyPatchTool.execute')(
       function* (params: Schema.Schema.Type<typeof Parameters>, ctx: SchemaTool.Context) {

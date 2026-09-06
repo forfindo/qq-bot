@@ -16,7 +16,7 @@ import { SchemaMcp, SchemaConfig } from '@/schema';
 import { dynamicTool, jsonSchema, type JSONSchema7, type Tool } from 'ai';
 import { ChildProcessSpawner, ChildProcess } from 'effect/unstable/process';
 import * as McpAuth from './auth';
-import { Bus } from '@/bus';
+import { Event } from '@/event';
 import { McpOAuthProvider } from '@/mcp/oauth-provider';
 import { InstanceContext, ModuleState, EffectRunner } from '@/instance';
 import { Config } from '@/config';
@@ -245,7 +245,7 @@ export const layer = Layer.effect(
   Effect.gen(function* () {
     const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
     const auth = yield* McpAuth.Service;
-    const bus = yield* Bus.Service;
+    const bus = yield* Event.Service;
     const cfgSvc = yield* Config.Service;
     const fs = yield* AppFileSystem.Service;
 
@@ -972,7 +972,7 @@ export type AuthStatus = 'authenticated' | 'expired' | 'not_authenticated';
 
 export const defaultLayer = layer.pipe(
   Layer.provide(McpAuth.layer),
-  Layer.provide(Bus.layer),
+  Layer.provide(Event.defaultLayer),
   Layer.provide(Config.defaultLayer),
   Layer.provide(CrossSpawnSpawner.defaultLayer),
   Layer.provide(AppFileSystem.defaultLayer)

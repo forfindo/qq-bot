@@ -9,6 +9,7 @@ import { Identifier } from '@/id';
 import { Ruleset } from '@/schema/permission';
 import {
   AgentPartInput,
+  Assistant,
   FilePartInput,
   Info,
   MessageID,
@@ -17,9 +18,9 @@ import {
   SubtaskPartInput,
   TextPartInput
 } from '@/schema/message';
-import { ModelID, ProviderID } from '@/schema/provider';
+import { ModelID, ModelRef, ProviderID } from '@/schema/provider';
 import { FileDiff } from '@/schema/snapshot';
-import { define } from '@/bus/bus-event';
+import { define, inventory } from '@/schema/event';
 
 // Legacy HTTP accepted negative values here. Keep archive timestamps permissive
 // while excluding non-finite values that cannot round-trip through JSON.
@@ -125,11 +126,6 @@ export const Format = Schema.Union([OutputFormatText, OutputFormatJsonSchema]).a
 
 export type OutputFormat = Schema.Schema.Type<typeof Format>;
 
-const ModelRef = Schema.Struct({
-  providerID: ProviderID,
-  modelID: ModelID
-});
-
 export const PromptInput = Schema.Struct({
   sessionID: SessionID,
   messageID: Schema.optional(MessageID),
@@ -151,66 +147,116 @@ export const PromptInput = Schema.Struct({
 });
 export type PromptInput = Schema.Schema.Type<typeof PromptInput>;
 
-export const Events = {
-  Created: define(
-    'session.created',
-    Schema.Struct({
+const options = {
+  durable: {
+    aggregate: 'sessionID',
+    version: 1
+  }
+} as const;
+
+const events = {
+  Created: define({
+    type: 'session.created',
+    ...options,
+    schema: Schema.Struct({
       sessionID: SessionID,
       info: SessionInfo
     })
-  ),
-  Updated: define(
-    'session.updated',
-    Schema.Struct({
+  }),
+  Updated: define({
+    type: 'session.updated',
+    ...options,
+    schema: Schema.Struct({
       sessionID: SessionID,
       info: SessionInfo
     })
-  ),
-  Deleted: define(
-    'session.deleted',
-    Schema.Struct({
+  }),
+  Deleted: define({
+    type: 'session.deleted',
+    ...options,
+    schema: Schema.Struct({
       sessionID: SessionID,
       info: SessionInfo
     })
-  ),
-  MessageUpdated: define(
-    'message.updated',
-    Schema.Struct({
+  }),
+  MessageUpdated: define({
+    type: 'message.updated',
+    ...options,
+    schema: Schema.Struct({
       sessionID: SessionID,
       info: Info
     })
-  ),
-  MessageRemoved: define(
-    'message.removed',
-    Schema.Struct({
+  }),
+  MessageRemoved: define({
+    type: 'message.removed',
+    ...options,
+    schema: Schema.Struct({
       sessionID: SessionID,
       messageID: MessageID
     })
-  ),
-  PartUpdated: define(
-    'message.part.updated',
-    Schema.Struct({
+  }),
+  PartUpdated: define({
+    type: 'message.part.updated',
+    ...options,
+    schema: Schema.Struct({
       sessionID: SessionID,
       part: Part,
       time: Schema.Finite
     })
-  ),
-  PartRemoved: define(
-    'message.part.removed',
-    Schema.Struct({
+  }),
+  PartRemoved: define({
+    type: 'message.part.removed',
+    ...options,
+    schema: Schema.Struct({
       sessionID: SessionID,
       messageID: MessageID,
       partID: PartID
     })
-  ),
-  PartDelta: define(
-    'message.part.delta',
-    Schema.Struct({
-      sessionID: SessionID,
-      messageID: MessageID,
-      partID: PartID,
-      field: Schema.String,
-      delta: Schema.String
-    })
+  })
+};
+
+export const PartDelta = define({
+  type: 'message.part.delta',
+  schema: Schema.Struct({
+    sessionID: SessionID,
+    messageID: MessageID,
+    partID: PartID,
+    field: Schema.String,
+    delta: Schema.String
+  })
+});
+
+export const Diff = define({
+  type: 'session.diff',
+  schema: Schema.Struct({
+    sessionID: SessionID,
+    diff: Schema.Array(FileDiff)
+  })
+});
+
+export const Error = define({
+  type: 'session.error',
+  schema: Schema.Struct({
+    sessionID: Schema.optional(SessionID),
+    error: Assistant.fields.error
+  })
+});
+
+export const Events = {
+  ...events,
+  PartDelta,
+  Diff,
+  Error,
+  Definitions: inventory(
+    events.Created,
+    events.Updated,
+    events.Deleted,
+    events.MessageUpdated,
+    events.MessageRemoved,
+    events.PartUpdated,
+    events.PartRemoved,
+    PartDelta,
+    Diff,
+    Error
   )
 };

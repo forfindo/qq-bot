@@ -1,6 +1,6 @@
 import { Context, Effect, Layer } from 'effect';
 import { SchemaAgent, SchemaSkill } from '@/schema';
-import { Bus } from '@/bus';
+import { Event } from '@/event';
 import { AppFileSystem } from '@/file';
 import { Config, ConfigMarkdown } from '@/config';
 import { ModuleState } from '@/instance';
@@ -100,7 +100,7 @@ const add = Effect.fnUntraced(function* (state: State, match: string) {
 const loadSkills = Effect.fnUntraced(function* (
   state: State,
   discovered: DiscoveryState,
-  bus: Bus.Interface
+  bus: Event.Interface
 ) {
   void bus;
   yield* Effect.forEach(discovered.matches, match => add(state, match), {
@@ -140,7 +140,7 @@ export const layer = Layer.effect(
   Effect.gen(function* () {
     const discovery = yield* Discovery.Service;
     const config = yield* Config.Service;
-    const bus = yield* Bus.Service;
+    const bus = yield* Event.Service;
     const fs = yield* AppFileSystem.Service;
 
     const discovered = yield* ModuleState.make<DiscoveryState>(
@@ -253,7 +253,7 @@ export const layer = Layer.effect(
 
 export const defaultLayer = layer.pipe(
   Layer.provide(AppFileSystem.defaultLayer),
-  Layer.provide(Bus.defaultLayer),
+  Layer.provide(Event.defaultLayer),
   Layer.provide(Config.defaultLayer),
   Layer.provide(Discovery.defaultLayer)
 );

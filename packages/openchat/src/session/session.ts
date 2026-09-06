@@ -2,7 +2,7 @@ import { SchemaMessage, SchemaPermission, SchemaProvider, SchemaSession } from '
 import { Context, Effect, Layer, Option, Schema } from 'effect';
 import { NotFoundError } from '@/storage/storage';
 import { Database } from '@/database';
-import { Bus } from '@/bus';
+import { Event } from '@/event';
 import { BackgroundJob } from '@/background';
 import { SessionTable, PartTable } from '@/database/sql/session.sql';
 import { and, desc, eq, gte, isNull, like } from 'drizzle-orm';
@@ -223,7 +223,7 @@ export const layer = Layer.effect(
   Service,
   Effect.gen(function* () {
     const database = yield* Database.Service;
-    const bus = yield* Bus.Service;
+    const bus = yield* Event.Service;
     const background = yield* BackgroundJob.Service;
     const sender = yield* MessageSender.Service;
     const db = database.db;
@@ -687,6 +687,6 @@ export const layer = Layer.effect(
 
 export const defaultLayer = layer.pipe(
   Layer.provide(BackgroundJob.layer),
-  Layer.provide(Bus.defaultLayer),
+  Layer.provide(Event.defaultLayer),
   Layer.provide(Database.defaultLayer)
 );

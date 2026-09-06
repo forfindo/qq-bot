@@ -20,6 +20,8 @@ import * as SchemaRipgrep from './ripgrep';
 import * as SchemaQuestion from './question';
 import * as SchemaSession from './session';
 import * as SchemaRevert from './revert';
+import * as SchemaEvent from './event';
+import * as SchemaLLM from './llm';
 
 export {
   SchemaAttachment,
@@ -43,5 +45,7 @@ export {
   SchemaRipgrep,
   SchemaQuestion,
   SchemaSession,
-  SchemaRevert
+  SchemaRevert,
+  SchemaEvent,
+  SchemaLLM
 };

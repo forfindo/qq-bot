@@ -8,7 +8,7 @@ import path from 'path';
 import { define } from '@/tool/tool';
 import { Effect, Schema, Semaphore } from 'effect';
 import { AppFileSystem } from '@/file';
-import { Bus } from '@/bus';
+import { Event } from '@/event';
 import DESCRIPTION from './edit.md';
 import { SchemaSnapshot, SchemaTool } from '@/schema';
 import { assertExternalDirectoryEffect } from '@/tool/external-directory';
@@ -537,7 +537,7 @@ export const EditTool = define(
   'edit',
   Effect.gen(function* () {
     const fs = yield* AppFileSystem.Service;
-    const bus = yield* Bus.Service;
+    const bus = yield* Event.Service;
 
     return {
       description: DESCRIPTION,
