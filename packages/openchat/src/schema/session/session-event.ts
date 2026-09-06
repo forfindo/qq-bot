@@ -5,7 +5,7 @@ import { Prompt, RetryError, SessionID, UnknownError } from '@/schema/session';
 import { MessageID } from '@/schema/message';
 import { ModelRef } from '@/schema/provider';
 import { optionalOmitUndefined, RelativePath } from '@/schema/common';
-import { ProviderMetadata, ToolContent } from '@/schema/llm';
+import { ProviderMetadata, ToolContent } from '@/schema/session/llm';
 import { State } from '@/schema/revert';
 
 export const Delivery = Schema.Literals(['steer', 'queue']);
