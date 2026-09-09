@@ -4,7 +4,7 @@ import { Identifier } from '@/id';
 import { ModelID, ProviderID } from '@/schema/provider';
 import { APIError } from './message-error';
 import { Info, MessageID } from './message';
-import { SessionID } from '@/schema/session';
+import { SessionID } from '@/schema/session/id';
 
 export const PartID = Schema.String.check(Schema.isStartsWith('prt')).pipe(
   Schema.brand('PartID'),

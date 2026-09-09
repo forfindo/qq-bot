@@ -19,7 +19,6 @@ const paths = {
   data,
   bin: path.join(cache, 'bin'),
   log: path.join(data, 'log'),
-  repos: path.join(data, 'repos'),
   cache,
   config,
   state,
@@ -65,6 +64,5 @@ await Promise.all([
   fs.mkdir(Path.tmp, { recursive: true }),
   fs.mkdir(Path.log, { recursive: true }),
   fs.mkdir(Path.bin, { recursive: true }),
-  fs.mkdir(Path.repos, { recursive: true }),
   ensureGitignore()
 ]);

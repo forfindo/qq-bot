@@ -1,26 +1,20 @@
-import { Effect, Schema } from 'effect';
-import {
-  type DeepMutable,
-  NonNegativeInt,
-  optionalOmitUndefined,
-  withStatics
-} from '@/schema/common';
-import { Identifier } from '@/id';
+import { Schema } from 'effect';
+import { type DeepMutable, NonNegativeInt, optionalOmitUndefined } from '@/schema/common';
 import { Ruleset } from '@/schema/permission';
 import {
   AgentPartInput,
-  Assistant,
   FilePartInput,
-  Info,
-  MessageID,
   Part,
   PartID,
   SubtaskPartInput,
   TextPartInput
-} from '@/schema/message';
+} from '@/schema/message/message-part';
+import { Info, MessageID, Assistant } from '@/schema/message/message';
 import { ModelID, ModelRef, ProviderID } from '@/schema/provider';
 import { FileDiff } from '@/schema/snapshot';
 import { define, inventory } from '@/schema/event';
+import { SessionID } from '@/schema/session/id';
+import { Format } from '@/schema/session/format';
 
 // Legacy HTTP accepted negative values here. Keep archive timestamps permissive
 // while excluding non-finite values that cannot round-trip through JSON.
@@ -69,14 +63,6 @@ const Share = Schema.Struct({
   url: Schema.String
 });
 
-export const SessionID = Schema.String.check(Schema.isStartsWith('ses')).pipe(
-  Schema.brand('SessionID'),
-  withStatics(s => ({
-    descending: (id?: string) => s.make(Identifier.descending('session', id))
-  }))
-);
-export type SessionID = Schema.Schema.Type<typeof SessionID>;
-
 export const SetMetadataInput = Schema.Struct({
   sessionID: SessionID,
   metadata: Metadata
@@ -106,25 +92,6 @@ export const GlobalInfo = Schema.Struct({
   ...SessionInfo.fields
 }).annotate({ identifier: 'GlobalSession' });
 export type GlobalInfo = DeepMutable<Schema.Schema.Type<typeof GlobalInfo>>;
-
-export class OutputFormatText extends Schema.Class<OutputFormatText>('OutputFormatText')({
-  type: Schema.Literal('text')
-}) {}
-
-export class OutputFormatJsonSchema extends Schema.Class<OutputFormatJsonSchema>(
-  'OutputFormatJsonSchema'
-)({
-  type: Schema.Literal('json_schema'),
-  schema: Schema.Record(Schema.String, Schema.Any).annotate({ identifier: 'JSONSchema' }),
-  retryCount: NonNegativeInt.pipe(Schema.optional, Schema.withDecodingDefault(Effect.succeed(2)))
-}) {}
-
-export const Format = Schema.Union([OutputFormatText, OutputFormatJsonSchema]).annotate({
-  discriminator: 'type',
-  identifier: 'OutputFormat'
-});
-
-export type OutputFormat = Schema.Schema.Type<typeof Format>;
 
 export const PromptInput = Schema.Struct({
   sessionID: SessionID,

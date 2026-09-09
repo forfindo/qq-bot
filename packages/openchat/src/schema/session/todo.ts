@@ -1,5 +1,5 @@
 import { Schema } from 'effect';
-import { SessionID } from './session';
+import { SessionID } from './id';
 import { define } from '@/schema/event';
 
 export const TodoInfo = Schema.Struct({

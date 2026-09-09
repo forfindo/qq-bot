@@ -2,7 +2,7 @@ import { Schema } from 'effect';
 import { MessageID } from '@/schema/message';
 import { NewType } from '@/schema/common';
 import { Identifier } from '@/id';
-import { SessionID } from '@/schema/session';
+import { SessionID } from '@/schema/session/id';
 import { define } from '@/schema/event';
 
 export class QuestionID extends NewType<QuestionID>()(
