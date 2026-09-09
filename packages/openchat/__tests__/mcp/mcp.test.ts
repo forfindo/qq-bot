@@ -7,7 +7,11 @@ describe('mcp service', () => {
   const runtime = ManagedRuntime.make(
     MCP.defaultLayer.pipe(
       Layer.provideMerge(
-        Layer.succeed(InstanceRefs.InstanceRef, { uid: '3530766280', owner: '3530766280' })
+        Layer.succeed(InstanceRefs.InstanceRef, {
+          uid: '3530766280',
+          owner: '3530766280',
+          name: '派蒙'
+        })
       )
     ),
     { memoMap: Layer.makeMemoMapUnsafe() }

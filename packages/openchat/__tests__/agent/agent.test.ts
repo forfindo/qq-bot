@@ -10,7 +10,7 @@ describe('agent service', () => {
       return yield* agent.list();
     }).pipe(
       Effect.provide(Agent.defaultLayer),
-      Effect.provideService(InstanceRef, { uid: '3530766280', owner: '3530766280' }),
+      Effect.provideService(InstanceRef, { uid: '3530766280', owner: '3530766280', name: '派蒙' }),
       Effect.runPromise
     );
     expect(result.length).toBe(8);

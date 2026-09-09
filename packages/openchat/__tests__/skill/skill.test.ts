@@ -11,7 +11,8 @@ describe('skill service', () => {
     }).pipe(
       Effect.provideService(InstanceRef, {
         uid: '3530766280',
-        owner: '3530766280'
+        owner: '3530766280',
+        name: '派蒙'
       }),
       Effect.provide(Skill.defaultLayer),
       Effect.runPromise

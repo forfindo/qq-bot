@@ -8,6 +8,15 @@ const truthy = (key: string) => {
   return value === 'true' || value === '1';
 };
 
+const number = (key: string) => {
+  const value = process.env[key];
+  if (!value) {
+    return void 0;
+  }
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : void 0;
+};
+
 const some = (...keys: string[]) => {
   for (const key of keys) {
     if (truthy(key)) {
@@ -52,7 +61,8 @@ const getStaticFlag = () => {
     DISABLE_CLAUDE_CODE_SKILLS: some('DISABLE_CLAUDE_CODE_SKILLS', 'DISABLE_CLAUDE_CODE'),
     DISABLE_CLAUDE_CODE_PROMPT: some('DISABLE_CLAUDE_CODE_PROMPT', 'DISABLE_CLAUDE_CODE'),
     GIT_BASH_PATH: process.env['GIT_BASH_PATH'],
-    OPENCHAT_DB: process.env['OPENCHAT_DB']
+    OPENCHAT_DB: process.env['OPENCHAT_DB'],
+    EXPERIMENTAL_OUTPUT_TOKEN_MAX: number('EXPERIMENTAL_OUTPUT_TOKEN_MAX')
   };
 };
 

@@ -9,7 +9,8 @@ describe('provider service', () => {
     const list = await InstanceContext.Instance.restore(
       {
         uid: '3530766280',
-        owner: '3530766280'
+        owner: '3530766280',
+        name: '派蒙'
       },
       async () => {
         return await Effect.gen(function* () {
@@ -25,7 +26,8 @@ describe('provider service', () => {
     const deepseek = await InstanceContext.Instance.restore(
       {
         uid: '3530766280',
-        owner: '3530766280'
+        owner: '3530766280',
+        name: '派蒙'
       },
       async () => {
         return await Effect.gen(function* () {

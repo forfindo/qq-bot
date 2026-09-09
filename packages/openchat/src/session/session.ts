@@ -355,7 +355,7 @@ export const layer = Layer.effect(
       permission?: SchemaPermission.Ruleset;
     }) {
       return yield* createNext({
-        ownerID: sender.groupID ?? sender.uid,
+        ownerID: sender.channelID ?? sender.uid,
         parentID: input?.parentID,
         title: input?.title,
         agent: input?.agent,
@@ -405,7 +405,7 @@ export const layer = Layer.effect(
       const original = yield* get(input.sessionID);
       const title = getForkedTitle(original.title);
       const session = yield* createNext({
-        ownerID: sender.groupID ?? sender.uid,
+        ownerID: sender.channelID ?? sender.uid,
         title,
         metadata: structuredClone(original.metadata)
       });

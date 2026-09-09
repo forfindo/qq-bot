@@ -1,12 +1,13 @@
 import { AppFileSystem } from '@/file';
 import { LocalContext } from '@/utils';
-import { Effect } from 'effect';
+import { Context, Effect, Fiber } from 'effect';
 import path from 'path';
 import { InstanceRef } from '@/instance/refrences';
 
 export interface InstanceContext {
   readonly uid: string;
   readonly owner: string;
+  readonly name: string;
 }
 
 const context = LocalContext.create<InstanceContext>('instance');
@@ -18,7 +19,9 @@ export const Instance = {
   get uid() {
     return context.use().uid;
   },
-
+  get name() {
+    return context.use().name;
+  },
   /**
    * Captures the current instance ALS context and returns a wrapper that
    * restores it when called. Use this for callbacks that fire outside the
@@ -55,3 +58,21 @@ export const getDirectory = Effect.fnUntraced(function* (uid?: string) {
   yield* fs.ensureDir(dir).pipe(Effect.orDie);
   return dir;
 });
+
+// eslint-disable-next-line
+export const bind = <F extends (...args: any[]) => any>(fn: F): F => {
+  try {
+    return Instance.bind(fn);
+  } catch (err) {
+    if (!(err instanceof LocalContext.NotFound)) {
+      throw err;
+    }
+  }
+  const fiber = Fiber.getCurrent();
+  const ctx = fiber ? Context.getReferenceUnsafe(fiber.context, InstanceRef) : void 0;
+  if (!ctx) {
+    return fn;
+  }
+  // eslint-disable-next-line
+  return ((...args: any[]) => Instance.restore(ctx, () => fn(...args))) as F;
+};

@@ -6,6 +6,8 @@ import { Event } from '@/event';
 import { ModuleState } from '@/instance';
 import { Wildcard } from '@/utils';
 
+const EDIT_TOOLS = ['edit', 'write', 'apply_patch'];
+
 const expand = (pattern: string): string => {
   if (pattern.startsWith('~/')) {
     return os.homedir() + pattern.slice(1);
@@ -50,6 +52,21 @@ export function fromConfig(permission: SchemaPermission.Info) {
 
 export function merge(...rulesets: SchemaPermission.Ruleset[]): SchemaPermission.Ruleset {
   return rulesets.flat();
+}
+
+export function disabled(tools: string[], ruleset: SchemaPermission.Ruleset): Set<string> {
+  const result = new Set<string>();
+  for (const tool of tools) {
+    const permission = EDIT_TOOLS.includes(tool) ? 'edit' : tool;
+    const rule = ruleset.findLast(rule => Wildcard.match(permission, rule.permission));
+    if (!rule) {
+      continue;
+    }
+    if (rule.pattern === '*' && rule.action === 'deny') {
+      result.add(tool);
+    }
+  }
+  return result;
 }
 
 export interface Interface {
