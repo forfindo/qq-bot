@@ -15,7 +15,7 @@ import { Log, Wildcard } from '@/utils';
 import { InstanceRef } from '@/instance/refrences';
 import CommonPrompt from './prompt/common.md';
 import * as MessageSender from './message-sender';
-import { channelPrompt, providerPrompt } from '@/session/system-prompt';
+import { channelPrompt, globalPrompt, providerPrompt } from '@/session/system-prompt';
 import { mergeDeep } from 'remeda';
 import { GitLabWorkflowLanguageModel } from 'gitlab-ai-provider';
 import type { JSONObject } from '@ai-sdk/provider';
@@ -76,10 +76,10 @@ export const hasToolCalls = (messages: ModelMessage[]): boolean => {
   return false;
 };
 
-export type Event = Result['fullStream'] extends AsyncIterable<infer T> ? T : never;
+export type Output = Result['fullStream'] extends AsyncIterable<infer T> ? T : never;
 
 export interface Interface {
-  readonly stream: (input: StreamInput) => Stream.Stream<Event, unknown>;
+  readonly stream: (input: StreamInput) => Stream.Stream<Output, unknown>;
 }
 
 export class Service extends Context.Service<Service, Interface>()('@openchat/LLM') {}
@@ -122,11 +122,15 @@ const layer = Layer.effect(
         [
           // use agent prompt otherwise provider prompt
           [
-            CommonPrompt.replace(/\{(.*?)}/g, (_, name: 'name' | 'owner') => ctx[name] || name),
-            channelPrompt(
+            CommonPrompt.replace(
+              /\{(.*?)}/g,
+              (_, name: 'name' | 'owner') => ctx[name] || `{${name}}`
+            ),
+            yield* globalPrompt(),
+            (yield* channelPrompt(
               messageSender.channelType,
               messageSender.channelID ?? messageSender.uid
-            ) ||
+            )) ||
               input.agent.prompt ||
               providerPrompt(input.model)
           ].join('\n'),
@@ -189,11 +193,7 @@ const layer = Layer.effect(
         maxOutputTokens: ProviderTransform.maxOutputTokens(input.model),
         options
       };
-
-      const headers = {};
-
       const tools = resolveTools(input);
-
       // GitHub Copilot may require the tools parameter when message history contains
       // tool calls but no tools are active (e.g. compaction). Inject a stub tool that
       // is never meant to be invoked. LiteLLM-backed providers are excluded.
@@ -389,15 +389,14 @@ const layer = Layer.effect(
                 'x-opencode-session': input.sessionID,
                 'x-opencode-request': input.user.id,
                 'x-opencode-client': 'plugin',
-                'User-Agent': `opencode/${InstallationVersion}`
+                'User-Agent': `openchat/${InstallationVersion}`
               }
             : {
                 'x-session-affinity': input.sessionID,
                 ...(input.parentSessionID ? { 'x-parent-session-id': input.parentSessionID } : {}),
-                'User-Agent': `opencode/${InstallationVersion}`
+                'User-Agent': `openchat/${InstallationVersion}`
               }),
-          ...input.model.headers,
-          ...headers
+          ...input.model.headers
         },
         maxRetries: input.retries ?? 0,
         messages,

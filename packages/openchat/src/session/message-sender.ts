@@ -1,5 +1,17 @@
 import { Context } from 'effect';
 
+export const withSenderInfo = (input: string, sender: Interface) => {
+  return JSON.stringify({
+    nickname: sender.nickname,
+    uid: sender.uid,
+    channelType: sender.channelType,
+    channelID: sender.channelID,
+    channelName: sender.channelName,
+    timestamp: sender.timestamp,
+    message: input
+  });
+};
+
 export interface Interface {
   nickname: string;
   uid: string;
@@ -7,7 +19,6 @@ export interface Interface {
   channelID?: string;
   channelName?: string;
   timestamp: number;
-  message: string;
 }
 
 export class Service extends Context.Service<Service, Interface>()('@openchat/MessageSender') {}

@@ -43,19 +43,37 @@ export const providerPrompt = (model: SchemaProvider.Model) => {
   return PROMPT_DEFAULT;
 };
 
-export const channelPrompt = Effect.fn(function* (channelId: string, channelType: string) {
+export const channelPrompt = Effect.fn(function* (channelType: string, channelId: string) {
   const fs = yield* AppFileSystem.Service;
   const directory = yield* InstanceContext.directory;
   const key = `${encodeURIComponent(channelType)}-${channelId}`;
+
   if (channelPromptMap.has(key)) {
     return channelPromptMap.get(key)!;
   }
-  fs.ensureDir(path.join(directory, `./${key}`));
+  yield* fs.ensureDir(path.join(directory, `./${key}`));
   const prompt = yield* fs
     .readFileStringSafe(path.join(directory, `./${key}/prompt.md`))
     .pipe(Effect.orDie);
   if (prompt) {
     channelPromptMap.set(key, prompt);
+  }
+  return prompt;
+}, Effect.provide(AppFileSystem.defaultLayer));
+
+export const globalPrompt = Effect.fn(function* () {
+  const fs = yield* AppFileSystem.Service;
+  const directory = yield* InstanceContext.directory;
+  const globalKey = 'global';
+
+  if (channelPromptMap.has(globalKey)) {
+    return channelPromptMap.get(globalKey)!;
+  }
+  const prompt = yield* fs
+    .readFileStringSafe(path.join(directory, `./prompt.md`))
+    .pipe(Effect.orDie);
+  if (prompt) {
+    channelPromptMap.set(globalKey, prompt);
   }
   return prompt;
 }, Effect.provide(AppFileSystem.defaultLayer));
