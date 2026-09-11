@@ -129,7 +129,7 @@ const layer = Layer.effect(
             yield* globalPrompt(),
             (yield* channelPrompt(
               messageSender.channelType,
-              messageSender.channelID ?? messageSender.uid
+              messageSender.channelInfo?.channelID ?? messageSender.source!.uid
             )) ||
               input.agent.prompt ||
               providerPrompt(input.model)

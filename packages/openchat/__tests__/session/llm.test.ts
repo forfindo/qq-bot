@@ -39,7 +39,7 @@ describe('llm service', () => {
         messages: [
           {
             role: 'user',
-            content: MessageSender.withSenderInfo('你能干什么', sender)
+            content: MessageSender.withSenderInfo('谁加入了群聊？加入了哪个群聊？', sender)
           }
         ],
         tools: {}
@@ -61,12 +61,18 @@ describe('llm service', () => {
       Effect.provide(Agent.defaultLayer),
       Effect.provide(Provider.defaultLayer),
       Effect.provideService(MessageSender.Service, {
-        uid: '3530766280',
-        nickname: '大肥鱼',
+        type: 'system',
+        eventType: '加群通知',
         channelType: '群聊',
-        channelID: '123454654',
-        channelName: '测试群',
-        timestamp: Date.now()
+        time: new Date().toLocaleString(),
+        channelInfo: {
+          channelID: '783278438',
+          channelName: '测试群'
+        },
+        source: {
+          uid: '451244444',
+          nickname: '一路生花'
+        }
       }),
       Effect.provideService(InstanceRef, {
         uid: '3530766280',
