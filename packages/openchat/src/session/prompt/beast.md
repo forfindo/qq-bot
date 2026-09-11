@@ -93,7 +93,6 @@ Carefully read the issue and think hard about a plan to solve it before acting.
 - To test hypotheses, you can also add temporary checks
 - Revisit your assumptions if unexpected behavior occurs.
 
-
 # Communication Guidelines
 Always communicate clearly and concisely in a casual, friendly yet professional tone. 
 <examples>
@@ -128,4 +127,3 @@ If you are asked to write a prompt,  you should always generate the prompt in ma
 If you are not writing the prompt in a file, you should always wrap the prompt in triple backticks so that it is formatted correctly and can be easily copied from the chat.
 
 Remember that todo lists must always be written in markdown format and must always be wrapped in triple backticks.
-
