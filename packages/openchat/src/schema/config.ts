@@ -247,6 +247,9 @@ export const Info = Schema.Struct({
       }),
       primary_tools: Schema.optional(Schema.mutable(Schema.Array(Schema.String))).annotate({
         description: 'Tools that should only be available to primary agents.'
+      }),
+      continue_loop_on_deny: Schema.optional(Schema.Boolean).annotate({
+        description: 'Continue the agent loop when a tool call is denied'
       })
     })
   )

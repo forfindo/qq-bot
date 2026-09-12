@@ -49,7 +49,7 @@ const durable = <const Definitions extends ReadonlyArray<SchemaEvent.Definition>
 
 const Durable = durable([
   ...SchemaSession.Events.Definitions.filter(definition => definition.durable !== void 0),
-  ...SchemaSession.DurableDefinitions
+  ...SchemaSession.DurableEvent.DurableDefinitions
 ]);
 
 const decodeSerializedEvent = (event: SerializedEvent): SchemaEvent.Payload => {

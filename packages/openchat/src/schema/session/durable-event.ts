@@ -38,7 +38,7 @@ const stepSettlementOptions = {
   }
 } as const;
 
-const AgentSwitched = define({
+export const AgentSwitched = define({
   type: 'session.next.agent.switched',
   ...options,
   schema: Schema.Struct({
@@ -47,8 +47,9 @@ const AgentSwitched = define({
     agent: Schema.String
   })
 });
+export type AgentSwitched = typeof AgentSwitched.Type;
 
-const ModelSwitched = define({
+export const ModelSwitched = define({
   type: 'session.next.model.switched',
   ...options,
   schema: Schema.Struct({
@@ -57,8 +58,9 @@ const ModelSwitched = define({
     model: ModelRef
   })
 });
+export type ModelSwitched = typeof ModelSwitched.Type;
 
-const Moved = define({
+export const Moved = define({
   type: 'session.next.moved',
   ...options,
   schema: Schema.Struct({
@@ -67,20 +69,23 @@ const Moved = define({
     subdirectory: RelativePath.pipe(optionalOmitUndefined)
   })
 });
+export type Moved = typeof Moved.Type;
 
-const Prompted = define({
+export const Prompted = define({
   type: 'session.next.prompted',
   ...options,
   schema: PromptFields
 });
+export type Prompted = typeof Prompted.Type;
 
-const PromptAdmitted = define({
+export const PromptAdmitted = define({
   type: 'session.next.prompt.admitted',
   ...options,
   schema: PromptFields
 });
+export type PromptAdmitted = typeof PromptAdmitted.Type;
 
-const ContextUpdated = define({
+export const ContextUpdated = define({
   type: 'session.next.context.updated',
   ...options,
   schema: Schema.Struct({
@@ -89,8 +94,9 @@ const ContextUpdated = define({
     text: Schema.String
   })
 });
+export type ContextUpdated = typeof ContextUpdated.Type;
 
-const Synthetic = define({
+export const Synthetic = define({
   type: 'session.next.synthetic',
   ...options,
   schema: Schema.Struct({
@@ -99,9 +105,10 @@ const Synthetic = define({
     text: Schema.String
   })
 });
+export type Synthetic = typeof Synthetic.Type;
 
 // eslint-disable-next-line @typescript-eslint/no-namespace
-namespace Shell {
+export namespace Shell {
   export const Started = define({
     type: 'session.next.shell.started',
     ...options,
@@ -127,7 +134,7 @@ namespace Shell {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-namespace
-namespace Step {
+export namespace Step {
   export const Started = define({
     type: 'session.next.step.started',
     ...options,
@@ -177,7 +184,7 @@ namespace Step {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-namespace
-namespace Text {
+export namespace Text {
   export const Started = define({
     type: 'session.next.text.started',
     ...options,
@@ -215,7 +222,7 @@ namespace Text {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-namespace
-namespace Reasoning {
+export namespace Reasoning {
   export const Started = define({
     type: 'session.next.reasoning.started',
     ...options,
@@ -255,7 +262,7 @@ namespace Reasoning {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-namespace
-namespace Tool {
+export namespace Tool {
   const ToolBase = {
     ...Base,
     assistantMessageID: MessageID,
@@ -358,7 +365,7 @@ namespace Tool {
   export type Failed = typeof Failed.Type;
 }
 
-const Retried = define({
+export const Retried = define({
   type: 'session.next.retried',
   ...options,
   schema: Schema.Struct({
@@ -367,9 +374,10 @@ const Retried = define({
     error: RetryError
   })
 });
+export type Retried = typeof Retried.Type;
 
 // eslint-disable-next-line @typescript-eslint/no-namespace
-namespace Compaction {
+export namespace Compaction {
   export const Started = define({
     type: 'session.next.compaction.started',
     ...options,
@@ -406,7 +414,7 @@ namespace Compaction {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-namespace
-namespace RevertEvent {
+export namespace RevertEvent {
   export const Staged = define({
     type: 'session.next.revert.staged',
     ...options,

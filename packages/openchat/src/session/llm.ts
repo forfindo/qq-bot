@@ -27,6 +27,8 @@ const log = Log.create({ service: 'llm' });
 
 type Result = Awaited<ReturnType<typeof streamText>>;
 
+export type StreamEvent = Result['fullStream'] extends AsyncIterable<infer T> ? T : never;
+
 export type StreamInput = {
   user: SchemaMessage.User;
   sessionID: string;
