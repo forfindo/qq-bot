@@ -22,7 +22,7 @@ import { InstanceContext, ModuleState, EffectRunner } from '@/instance';
 import { Config } from '@/config';
 import { AppFileSystem } from '@/file';
 import { cancelPending, ensureRunning } from '@/mcp/oauth-callback';
-import { CrossSpawnSpawner } from '@/cross-spawn-spawner';
+import { CrossSpawnSpawner } from '@/process';
 import { InstallationVersion } from '@/installation/version';
 
 // Prompt cache types

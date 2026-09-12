@@ -21,6 +21,7 @@ import * as SchemaQuestion from './question';
 import * as SchemaSession from './session';
 import * as SchemaRevert from './revert';
 import * as SchemaEvent from './event';
+import * as SchemaProcess from './process';
 
 export {
   SchemaAttachment,
@@ -45,5 +46,6 @@ export {
   SchemaQuestion,
   SchemaSession,
   SchemaRevert,
-  SchemaEvent
+  SchemaEvent,
+  SchemaProcess
 };

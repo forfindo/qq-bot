@@ -6,7 +6,7 @@ import { FetchHttpClient, HttpClient, HttpClientRequest } from 'effect/unstable/
 import { ChildProcess, ChildProcessSpawner } from 'effect/unstable/process';
 import path from 'path';
 import { Global, Log, ProcessUtil, which } from '@/utils';
-import { CrossSpawnSpawner } from '@/cross-spawn-spawner';
+import { CrossSpawnSpawner } from '@/process';
 
 const log = Log.create({ service: 'ripgrep' });
 const VERSION = '15.1.0';
