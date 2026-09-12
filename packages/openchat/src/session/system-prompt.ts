@@ -46,7 +46,7 @@ export const providerPrompt = (model: SchemaProvider.Model) => {
 export const channelPrompt = Effect.fn(function* (channelType: string, channelId: string) {
   const fs = yield* AppFileSystem.Service;
   const directory = yield* InstanceContext.directory;
-  const key = `${encodeURIComponent(channelType)}-${channelId}`;
+  const key = `${channelType}-${channelId}`;
 
   if (channelPromptMap.has(key)) {
     return channelPromptMap.get(key)!;
