@@ -15,6 +15,7 @@ import { FileDiff } from '@/schema/snapshot';
 import { define, inventory } from '@/schema/event';
 import { SessionID } from '@/schema/session/id';
 import { Format } from '@/schema/session/format';
+import { StatusInfo } from '@/schema/session/status';
 
 // Legacy HTTP accepted negative values here. Keep archive timestamps permissive
 // while excluding non-finite values that cannot round-trip through JSON.
@@ -179,10 +180,23 @@ const events = {
       messageID: MessageID,
       partID: PartID
     })
+  }),
+  Status: define({
+    type: 'session.status',
+    schema: Schema.Struct({
+      sessionID: SessionID,
+      status: StatusInfo
+    })
+  }),
+  Idle: define({
+    type: 'session.idle',
+    schema: Schema.Struct({
+      sessionID: SessionID
+    })
   })
 };
 
-export const PartDelta = define({
+const PartDelta = define({
   type: 'message.part.delta',
   schema: Schema.Struct({
     sessionID: SessionID,
@@ -193,7 +207,7 @@ export const PartDelta = define({
   })
 });
 
-export const Diff = define({
+const Diff = define({
   type: 'session.diff',
   schema: Schema.Struct({
     sessionID: SessionID,
@@ -201,7 +215,7 @@ export const Diff = define({
   })
 });
 
-export const Error = define({
+const Error = define({
   type: 'session.error',
   schema: Schema.Struct({
     sessionID: Schema.optional(SessionID),
@@ -222,6 +236,8 @@ export const Events = {
     events.MessageRemoved,
     events.PartUpdated,
     events.PartRemoved,
+    events.Status,
+    events.Idle,
     PartDelta,
     Diff,
     Error

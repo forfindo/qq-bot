@@ -6,3 +6,4 @@ export * from './prompt';
 export * from './session-error';
 export * from './session-event';
 export * from './llm';
+export * from './status';
