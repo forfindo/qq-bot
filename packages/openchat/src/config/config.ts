@@ -1,6 +1,6 @@
 import { Context, Duration, Effect, Layer, pipe, Record, Result } from 'effect';
 import { SchemaConfig, SchemaPermission } from '@/schema';
-import { ModuleState, InstanceContext } from '@/instance';
+import { ServiceState, InstanceContext } from '@/instance';
 import { mergeDeep, unique } from 'remeda';
 import path from 'path';
 import { existsSync } from 'fs';
@@ -347,14 +347,14 @@ export const layer = Layer.effect(
       Effect.orDie
     );
 
-    const state = yield* ModuleState.make<State>(
+    const state = yield* ServiceState.make<State>(
       Effect.fn('Config.state')(function* (ctx) {
         return yield* loadInstanceState(ctx);
       })
     );
 
     const get = Effect.fn('Config.get')(function* () {
-      return yield* ModuleState.use(state, s => s.config);
+      return yield* ServiceState.use(state, s => s.config);
     });
 
     const update = Effect.fn('Config.update')(
@@ -375,7 +375,7 @@ export const layer = Layer.effect(
     });
 
     const directories = Effect.fn('Config.directories')(function* () {
-      return yield* ModuleState.use(state, s => s.directories);
+      return yield* ServiceState.use(state, s => s.directories);
     });
 
     const invalidate = Effect.fn('Config.invalidate')(function* () {

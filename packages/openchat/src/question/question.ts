@@ -1,7 +1,7 @@
 import { SchemaQuestion, SchemaSession } from '@/schema';
 import { Context, Deferred, Effect, Layer } from 'effect';
 import { Event } from '@/event';
-import { ModuleState } from '@/instance';
+import { ServiceState } from '@/instance';
 import { Log } from '@/utils';
 
 const log = Log.create({ service: 'question' });
@@ -35,7 +35,7 @@ export const layer = Layer.effect(
   Service,
   Effect.gen(function* () {
     const bus = yield* Event.Service;
-    const state = yield* ModuleState.make<State>(
+    const state = yield* ServiceState.make<State>(
       Effect.fn('Question.state')(function* () {
         const state = {
           pending: new Map<SchemaQuestion.QuestionID, PendingEntry>()
@@ -59,7 +59,7 @@ export const layer = Layer.effect(
       questions: ReadonlyArray<SchemaQuestion.Info>;
       tool?: SchemaQuestion.Tool;
     }) {
-      const pending = (yield* ModuleState.get(state)).pending;
+      const pending = (yield* ServiceState.get(state)).pending;
       const id = SchemaQuestion.QuestionID.ascending();
       log.info('asking', { id, questions: input.questions.length });
 
@@ -90,7 +90,7 @@ export const layer = Layer.effect(
       requestID: SchemaQuestion.QuestionID;
       answers: ReadonlyArray<SchemaQuestion.Answer>;
     }) {
-      const pending = (yield* ModuleState.get(state)).pending;
+      const pending = (yield* ServiceState.get(state)).pending;
       const existing = pending.get(input.requestID);
       if (!existing) {
         log.warn('reply for unknown request', { requestID: input.requestID });
@@ -108,7 +108,7 @@ export const layer = Layer.effect(
     });
 
     const reject = Effect.fn('Question.reject')(function* (requestID: SchemaQuestion.QuestionID) {
-      const pending = (yield* ModuleState.get(state)).pending;
+      const pending = (yield* ServiceState.get(state)).pending;
       const existing = pending.get(requestID);
       if (!existing) {
         log.warn('reject for unknown request', { requestID });
@@ -125,7 +125,7 @@ export const layer = Layer.effect(
     });
 
     const list = Effect.fn('Question.list')(function* () {
-      const pending = (yield* ModuleState.get(state)).pending;
+      const pending = (yield* ServiceState.get(state)).pending;
       return Array.from(pending.values(), x => x.info);
     });
 

@@ -11,3 +11,9 @@ export const FileDiff = Schema.Struct({
   status: Schema.optional(Schema.Literals(['added', 'deleted', 'modified']))
 }).annotate({ identifier: 'SnapshotFileDiff' });
 export type FileDiff = typeof FileDiff.Type;
+
+export const Patch = Schema.Struct({
+  hash: Schema.String,
+  files: Schema.mutable(Schema.Array(Schema.String))
+});
+export type Patch = typeof Patch.Type;

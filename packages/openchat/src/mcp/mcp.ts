@@ -18,7 +18,7 @@ import { ChildProcessSpawner, ChildProcess } from 'effect/unstable/process';
 import * as McpAuth from './auth';
 import { Event } from '@/event';
 import { McpOAuthProvider } from '@/mcp/oauth-provider';
-import { InstanceContext, ModuleState, EffectRunner } from '@/instance';
+import { InstanceContext, ServiceState, EffectRunner } from '@/instance';
 import { Config } from '@/config';
 import { AppFileSystem } from '@/file';
 import { cancelPending, ensureRunning } from '@/mcp/oauth-callback';
@@ -449,7 +449,7 @@ export const layer = Layer.effect(
       label: string,
       meta?: Record<string, unknown>
     ) {
-      const s = yield* ModuleState.get(state);
+      const s = yield* ServiceState.get(state);
       const client = s.clients[clientName];
       if (!client) {
         log.warn(`client not found for ${label}`, { clientName });
@@ -576,7 +576,7 @@ export const layer = Layer.effect(
       name: string,
       mcp: SchemaMcp.Info
     ) {
-      const s = yield* ModuleState.get(state);
+      const s = yield* ServiceState.get(state);
       const result = yield* create(name, mcp);
 
       s.status[name] = result.status;
@@ -598,7 +598,7 @@ export const layer = Layer.effect(
       return mcpConfig;
     });
 
-    const state = yield* ModuleState.make<State>(
+    const state = yield* ServiceState.make<State>(
       Effect.fn('MCP.state')(function* () {
         const cfg = yield* cfgSvc.get();
         const runner = yield* EffectRunner.make();
@@ -669,7 +669,7 @@ export const layer = Layer.effect(
     );
 
     const status = Effect.fn('MCP.status')(function* () {
-      const s = yield* ModuleState.get(state);
+      const s = yield* ServiceState.get(state);
 
       const cfg = yield* cfgSvc.get();
       const config = cfg.mcp ?? {};
@@ -686,12 +686,12 @@ export const layer = Layer.effect(
     });
 
     const clients = Effect.fn('MCP.clients')(function () {
-      return ModuleState.use(state, s => s.clients);
+      return ServiceState.use(state, s => s.clients);
     });
 
     const tools = Effect.fn('MCP.tools')(function* () {
       const result: Record<string, Tool> = {};
-      const s = yield* ModuleState.get(state);
+      const s = yield* ServiceState.get(state);
 
       const cfg = yield* cfgSvc.get();
       const config = cfg.mcp ?? {};
@@ -725,12 +725,12 @@ export const layer = Layer.effect(
     });
 
     const prompts = Effect.fn('MCP.prompts')(function* () {
-      const s = yield* ModuleState.get(state);
+      const s = yield* ServiceState.get(state);
       return yield* collectFromConnected(s, c => c.listPrompts().then(r => r.prompts), 'prompts');
     });
 
     const resources = Effect.fn('MCP.resources')(function* () {
-      const s = yield* ModuleState.get(state);
+      const s = yield* ServiceState.get(state);
       return yield* collectFromConnected(
         s,
         c => c.listResources().then(r => r.resources),
@@ -740,7 +740,7 @@ export const layer = Layer.effect(
 
     const add = Effect.fn('MCP.add')(function* (name: string, mcp: SchemaMcp.Info) {
       yield* createAndStore(name, mcp);
-      const s = yield* ModuleState.get(state);
+      const s = yield* ServiceState.get(state);
       return { status: s.status };
     });
 
@@ -754,7 +754,7 @@ export const layer = Layer.effect(
     });
 
     const disconnect = Effect.fn('MCP.disconnect')(function* (name: string) {
-      const s = yield* ModuleState.get(state);
+      const s = yield* ServiceState.get(state);
       yield* closeClient(s, name);
       delete s.clients[name];
       s.status[name] = { status: 'disabled' };

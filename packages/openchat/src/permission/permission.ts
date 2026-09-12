@@ -3,7 +3,7 @@ import { evaluate as evalRule } from './evaluate';
 import os from 'os';
 import { Context, Deferred, Effect, Layer } from 'effect';
 import { Event } from '@/event';
-import { ModuleState } from '@/instance';
+import { ServiceState } from '@/instance';
 import { Wildcard } from '@/utils';
 
 const EDIT_TOOLS = ['edit', 'write', 'apply_patch'];
@@ -97,7 +97,7 @@ export const layer = Layer.effect(
   Effect.gen(function* () {
     const events = yield* Event.Service;
 
-    const state = yield* ModuleState.make<State>(
+    const state = yield* ServiceState.make<State>(
       Effect.fn('Permission.state')(function* () {
         const state = {
           pending: new Map<SchemaPermission.PermissionID, PendingEntry>(),
@@ -118,7 +118,7 @@ export const layer = Layer.effect(
     );
 
     const ask = Effect.fn('Permission.ask')(function* (input: SchemaPermission.AskInput) {
-      const { approved, pending } = yield* ModuleState.get(state);
+      const { approved, pending } = yield* ServiceState.get(state);
       const { ruleset, ...request } = input;
       let needsAsk = false;
 
@@ -171,7 +171,7 @@ export const layer = Layer.effect(
     });
 
     const reply = Effect.fn('Permission.reply')(function* (input: SchemaPermission.ReplyInput) {
-      const { approved, pending } = yield* ModuleState.get(state);
+      const { approved, pending } = yield* ServiceState.get(state);
       const existing = pending.get(input.requestID);
       if (!existing) {
         return yield* new SchemaPermission.NotFoundError({ requestID: input.requestID });
@@ -241,7 +241,7 @@ export const layer = Layer.effect(
     });
 
     const list = Effect.fn('Permission.list')(function* () {
-      const pending = (yield* ModuleState.get(state)).pending;
+      const pending = (yield* ServiceState.get(state)).pending;
       return Array.from(pending.values(), item => item.info);
     });
 

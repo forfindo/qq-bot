@@ -10,7 +10,7 @@ import {
   SynchronizedRef
 } from 'effect';
 import { Identifier } from '@/id';
-import { ModuleState } from '@/instance';
+import { ServiceState } from '@/instance';
 
 export type Status = 'running' | 'completed' | 'error' | 'cancelled';
 
@@ -443,16 +443,16 @@ export const make = Effect.gen(function* () {
 export const layer = Layer.effect(
   Service,
   Effect.gen(function* () {
-    const state = yield* ModuleState.make<Interface>(() => make);
+    const state = yield* ServiceState.make<Interface>(() => make);
     return Service.of({
-      list: () => ModuleState.useEffect(state, jobs => jobs.list()),
-      get: id => ModuleState.useEffect(state, jobs => jobs.get(id)),
-      start: input => ModuleState.useEffect(state, jobs => jobs.start(input)),
-      extend: input => ModuleState.useEffect(state, jobs => jobs.extend(input)),
-      wait: input => ModuleState.useEffect(state, jobs => jobs.wait(input)),
-      waitForPromotion: id => ModuleState.useEffect(state, jobs => jobs.waitForPromotion(id)),
-      promote: id => ModuleState.useEffect(state, jobs => jobs.promote(id)),
-      cancel: id => ModuleState.useEffect(state, jobs => jobs.cancel(id))
+      list: () => ServiceState.useEffect(state, jobs => jobs.list()),
+      get: id => ServiceState.useEffect(state, jobs => jobs.get(id)),
+      start: input => ServiceState.useEffect(state, jobs => jobs.start(input)),
+      extend: input => ServiceState.useEffect(state, jobs => jobs.extend(input)),
+      wait: input => ServiceState.useEffect(state, jobs => jobs.wait(input)),
+      waitForPromotion: id => ServiceState.useEffect(state, jobs => jobs.waitForPromotion(id)),
+      promote: id => ServiceState.useEffect(state, jobs => jobs.promote(id)),
+      cancel: id => ServiceState.useEffect(state, jobs => jobs.cancel(id))
     });
   })
 );

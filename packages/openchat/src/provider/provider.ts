@@ -3,7 +3,7 @@ import { SchemaModels, SchemaProvider } from '@/schema';
 import { type LanguageModelV3, NoSuchModelError } from '@ai-sdk/provider';
 import { type BundledSDK, resolveSDK } from '@/provider/adapter';
 import { AppFileSystem } from '@/file';
-import { ModuleState } from '@/instance';
+import { ServiceState } from '@/instance';
 import { Config } from '@/config';
 import { Auth } from '@/auth';
 import { ModelsDev } from '@/models-dev';
@@ -267,7 +267,7 @@ export const layer = Layer.effect(
     const auth = yield* Auth.Service;
     const modelsDevSvc = yield* ModelsDev.Service;
 
-    const state = yield* ModuleState.make<State>(() =>
+    const state = yield* ServiceState.make<State>(() =>
       Effect.gen(function* () {
         const cfg = yield* config.get();
         const modelsDev = yield* modelsDevSvc.get();
@@ -619,17 +619,17 @@ export const layer = Layer.effect(
       })
     );
 
-    const list = Effect.fn('Provider.list')(() => ModuleState.use(state, s => s.providers));
+    const list = Effect.fn('Provider.list')(() => ServiceState.use(state, s => s.providers));
 
     const getProvider = Effect.fn('Provider.getProvider')((providerID: SchemaProvider.ProviderID) =>
-      ModuleState.use(state, s => s.providers[providerID]!)
+      ServiceState.use(state, s => s.providers[providerID]!)
     );
 
     const getModel = Effect.fn('Provider.getModel')(function* (
       providerID: SchemaProvider.ProviderID,
       modelID: SchemaProvider.ModelID
     ) {
-      const s = yield* ModuleState.get(state);
+      const s = yield* ServiceState.get(state);
       const provider = s.providers[providerID];
       if (!provider) {
         const catalogProvider = s.catalog[providerID];
@@ -656,7 +656,7 @@ export const layer = Layer.effect(
     });
 
     const getLanguage = Effect.fn('Provider.getLanguage')(function* (model: SchemaProvider.Model) {
-      const s = yield* ModuleState.get(state);
+      const s = yield* ServiceState.get(state);
       const key = `${model.providerID}/${model.id}`;
       if (s.models.has(key)) {
         return s.models.get(key)!;
@@ -694,7 +694,7 @@ export const layer = Layer.effect(
       providerID: SchemaProvider.ProviderID,
       query: string[]
     ) {
-      const s = yield* ModuleState.get(state);
+      const s = yield* ServiceState.get(state);
       const provider = s.providers[providerID];
       if (!provider) {
         return void 0;
@@ -721,7 +721,7 @@ export const layer = Layer.effect(
         );
       }
 
-      const s = yield* ModuleState.get(state);
+      const s = yield* ServiceState.get(state);
       const provider = s.providers[providerID];
       if (!provider) {
         return void 0;
@@ -784,7 +784,7 @@ export const layer = Layer.effect(
         return parseModel(cfg.model);
       }
 
-      const s = yield* ModuleState.get(state);
+      const s = yield* ServiceState.get(state);
       const recent = yield* fs.readJson(path.join(Global.Path.state, 'model.json')).pipe(
         Effect.map(
           (x): { providerID: SchemaProvider.ProviderID; modelID: SchemaProvider.ModelID }[] => {

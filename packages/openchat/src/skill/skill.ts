@@ -3,7 +3,7 @@ import { SchemaAgent, SchemaSkill } from '@/schema';
 import { Event } from '@/event';
 import { AppFileSystem } from '@/file';
 import { Config, ConfigMarkdown } from '@/config';
-import { ModuleState } from '@/instance';
+import { ServiceState } from '@/instance';
 import { Glob, Global, Log, TypeGuard } from '@/utils';
 import path from 'path';
 import * as Discovery from './discovery';
@@ -143,7 +143,7 @@ export const layer = Layer.effect(
     const bus = yield* Event.Service;
     const fs = yield* AppFileSystem.Service;
 
-    const discovered = yield* ModuleState.make<DiscoveryState>(
+    const discovered = yield* ServiceState.make<DiscoveryState>(
       Effect.fn('Skill.discovery')(
         function* (ctx) {
           const state: ScanState = { matches: new Set(), dirs: new Set() };
@@ -208,11 +208,11 @@ export const layer = Layer.effect(
       )
     );
 
-    const state = yield* ModuleState.make<State>(
+    const state = yield* ServiceState.make<State>(
       Effect.fn('Skill.state')(
         function* () {
           const s: State = { skills: {}, dirs: new Set() };
-          yield* loadSkills(s, yield* ModuleState.get(discovered), bus);
+          yield* loadSkills(s, yield* ServiceState.get(discovered), bus);
           return s;
         },
         Effect.provideService(AppFileSystem.Service, fs)
@@ -220,19 +220,19 @@ export const layer = Layer.effect(
     );
 
     const get = Effect.fn('Skill.get')(function* (name: string) {
-      return yield* ModuleState.use(state, s => s.skills[name]);
+      return yield* ServiceState.use(state, s => s.skills[name]);
     });
 
     const all = Effect.fn('Skill.all')(function* () {
-      return yield* ModuleState.use(state, s => Object.values(s.skills));
+      return yield* ServiceState.use(state, s => Object.values(s.skills));
     });
 
     const dirs = Effect.fn('Skill.dirs')(function* () {
-      return yield* ModuleState.use(discovered, s => s.dirs);
+      return yield* ServiceState.use(discovered, s => s.dirs);
     });
 
     const available = Effect.fn('Skill.available')(function* (agent?: SchemaAgent.Info) {
-      const s = yield* ModuleState.get(state);
+      const s = yield* ServiceState.get(state);
       const list = Object.values(s.skills).toSorted((a, b) => a.name.localeCompare(b.name));
       if (!agent) {
         return list;

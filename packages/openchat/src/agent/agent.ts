@@ -3,7 +3,7 @@ import { SchemaAgent } from '@/schema';
 import { Config } from '@/config';
 import { Skill } from '@/skill';
 import { Provider } from '@/provider';
-import { ModuleState } from '@/instance';
+import { ServiceState } from '@/instance';
 import { Truncate } from '@/tool';
 import path from 'path';
 import { Global } from '@/utils';
@@ -34,7 +34,7 @@ export const layer = Layer.effect(
     const config = yield* Config.Service;
     const skill = yield* Skill.Service;
 
-    const state = yield* ModuleState.make<State>(
+    const state = yield* ServiceState.make<State>(
       Effect.fn('Agent.state')(function* () {
         const cfg = yield* config.get();
         const skillDir = yield* skill.dirs();
@@ -253,12 +253,12 @@ export const layer = Layer.effect(
     );
 
     const get = Effect.fn('Agent.get')(function* (agent: string) {
-      return yield* ModuleState.use(state, s => s.agents[agent]);
+      return yield* ServiceState.use(state, s => s.agents[agent]);
     });
 
     const list = Effect.fn('Agent.list')(function* () {
       const cfg = yield* config.get();
-      const { agents } = yield* ModuleState.get(state);
+      const { agents } = yield* ServiceState.get(state);
       return pipe(
         agents,
         values(),
@@ -271,7 +271,7 @@ export const layer = Layer.effect(
 
     const defaultInfo = Effect.fn('Agent.defaultInfo')(function* () {
       const c = yield* config.get();
-      const { agents } = yield* ModuleState.get(state);
+      const { agents } = yield* ServiceState.get(state);
       if (c.default_agent) {
         const agent = agents[c.default_agent];
         if (!agent) {

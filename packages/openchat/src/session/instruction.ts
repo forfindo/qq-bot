@@ -6,7 +6,7 @@ import { FetchHttpClient, HttpClient, HttpClientRequest } from 'effect/unstable/
 import { Global, withTransientReadRetry } from '@/utils';
 import path from 'path';
 import { Flag } from '@/flag';
-import { InstanceContext, ModuleState } from '@/instance';
+import { InstanceContext, ServiceState } from '@/instance';
 
 const FILES = [
   'AGENTS.md',
@@ -69,7 +69,7 @@ export const layer = Layer.effect(
         : [])
     ];
 
-    const state = yield* ModuleState.make<State>(
+    const state = yield* ServiceState.make<State>(
       Effect.fn('Instruction.state')(() =>
         Effect.succeed({
           // Track which instruction files have already been attached for a given assistant message.
@@ -101,7 +101,7 @@ export const layer = Layer.effect(
     });
 
     const fetch = Effect.fnUntraced(function* (url: string) {
-      const s = yield* ModuleState.get(state);
+      const s = yield* ServiceState.get(state);
       const cached = s.remote.get(url);
       if (cached !== void 0) {
         return cached;
@@ -124,7 +124,7 @@ export const layer = Layer.effect(
     });
 
     const clear = Effect.fn('Instruction.clear')(function* (messageID: SchemaMessage.MessageID) {
-      const s = yield* ModuleState.get(state);
+      const s = yield* ServiceState.get(state);
       s.claims.delete(messageID);
     });
 
@@ -220,7 +220,7 @@ export const layer = Layer.effect(
         const sys = yield* systemPaths();
         const already = extract(messages);
         const results: { filepath: string; content: string }[] = [];
-        const s = yield* ModuleState.get(state);
+        const s = yield* ServiceState.get(state);
         const root = path.resolve(yield* InstanceContext.directory);
 
         const target = path.resolve(filepath);
