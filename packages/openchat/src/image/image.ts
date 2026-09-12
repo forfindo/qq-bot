@@ -174,3 +174,5 @@ export const layer = Layer.effect(
     return Service.of({ normalize });
   })
 );
+
+export const defaultLayer = layer.pipe(Layer.provide(Config.defaultLayer));

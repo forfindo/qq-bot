@@ -1,10 +1,9 @@
 import { Schema } from 'effect';
 import { NamedError } from '@/utils/error';
 import { NonNegativeInt } from '@/schema/common';
-import type { ProviderID } from '@/schema/provider';
+import { parseAPICallError, parseStreamError, type ProviderID } from '@/schema/provider';
 import type { Assistant } from '@/schema/message/message';
 import { APICallError, LoadAPIKeyError } from 'ai';
-import { ProviderError } from '@/provider';
 import { AppError } from '@/utils';
 
 /** Error shape thrown by Bun's fetch() when gzip/br decompression fails mid-stream */
@@ -101,7 +100,7 @@ export const fromError = (
         { cause: e }
       ).toObject();
     case APICallError.isInstance(e): {
-      const parsed = ProviderError.parseAPICallError({
+      const parsed = parseAPICallError({
         providerID: ctx.providerID,
         error: e
       });
@@ -131,7 +130,7 @@ export const fromError = (
       return new NamedError.Unknown({ message: AppError.errorMessage(e) }, { cause: e }).toObject();
     default:
       try {
-        const parsed = ProviderError.parseStreamError(e);
+        const parsed = parseStreamError(e);
         if (parsed) {
           if (parsed.type === 'context_overflow') {
             return new ContextOverflowError(

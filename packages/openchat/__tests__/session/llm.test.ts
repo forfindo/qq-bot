@@ -60,7 +60,7 @@ describe('llm service', () => {
       Effect.provide(LLM.defaultLayer),
       Effect.provide(Agent.defaultLayer),
       Effect.provide(Provider.defaultLayer),
-      Effect.provideService(MessageSender.Service, {
+      Effect.provideService(MessageSender.Ref, {
         type: 'system',
         eventType: '加群通知',
         channelType: '群聊',

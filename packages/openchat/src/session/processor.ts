@@ -808,3 +808,14 @@ export const layer = Layer.effect(
     });
   })
 );
+
+export const defaultLayer = layer.pipe(
+  Layer.provide(Session.defaultLayer),
+  Layer.provide(Config.defaultLayer),
+  Layer.provide(LLM.defaultLayer),
+  Layer.provide(Permission.defaultLayer),
+  Layer.provide(Image.defaultLayer),
+  Layer.provide(Event.defaultLayer),
+  Layer.provide(Agent.defaultLayer),
+  Layer.provide(SessionStatus.defaultLayer)
+);

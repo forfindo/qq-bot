@@ -52,4 +52,4 @@ export const layer = Layer.effect(
   })
 );
 
-export const defaultLayer = layer.pipe(Layer.provide(Event.layer));
+export const defaultLayer = layer.pipe(Layer.provide(Event.defaultLayer));

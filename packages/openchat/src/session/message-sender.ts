@@ -1,8 +1,9 @@
-import { Context } from 'effect';
+import { Context, Effect } from 'effect';
 
 export const withSenderInfo = (input: string, sender: Interface) => {
   if (sender.type === 'user') {
     return JSON.stringify({
+      type: 'message',
       nickname: sender.source.nickname,
       uid: sender.source.uid,
       channelType: sender.channelType,
@@ -13,7 +14,8 @@ export const withSenderInfo = (input: string, sender: Interface) => {
     });
   } else if (sender.type === 'system') {
     return JSON.stringify({
-      type: sender.eventType,
+      type: 'notification',
+      eventType: sender.eventType,
       channelType: sender.channelType,
       channelID: sender.channelInfo?.channelID,
       channelName: sender.channelInfo?.channelName,
@@ -72,4 +74,14 @@ export type SystemInterface =
 
 export type Interface = UserInterface | SystemInterface;
 
-export class Service extends Context.Service<Service, Interface>()('@openchat/MessageSender') {}
+export const Ref = Context.Reference<Interface | undefined>('~openchat/MessageSender', {
+  defaultValue: () => void 0
+});
+
+export const Service = Effect.gen(function* () {
+  const sender = yield* Ref;
+  if (!sender) {
+    return yield* Effect.die(new Error('MessageSender is required'));
+  }
+  return sender;
+});

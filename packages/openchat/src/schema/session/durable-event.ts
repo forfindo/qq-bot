@@ -1,7 +1,8 @@
 import { define, inventory, LocationRef } from '@/schema/event';
 import { Schema } from 'effect';
 import { DateTimeUtcFromMillis } from 'effect/Schema';
-import { Prompt, RetryError, UnknownError } from '@/schema/session';
+import { Prompt } from '@/schema/session/prompt';
+import { RetryError, UnknownError } from '@/schema/session/session-error';
 import { SessionID } from '@/schema/session/id';
 import { MessageID } from '@/schema/message';
 import { ModelRef } from '@/schema/provider';
