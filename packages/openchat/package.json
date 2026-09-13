@@ -71,7 +71,8 @@
     "venice-ai-sdk-provider": "2.0.1",
     "web-tree-sitter": "0.25.10",
     "which": "7.0.0",
-    "drizzle-orm": "1.0.0-rc.2"
+    "drizzle-orm": "1.0.0-rc.2",
+    "zod": "4.1.8"
   },
   "files": [
     "./dist/**/*",

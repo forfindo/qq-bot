@@ -38,6 +38,15 @@ export interface Interface {
   readonly add: (
     pkg: string
   ) => Effect.Effect<SchemaNpm.EntryPoint, SchemaNpm.InstallFailedError | Flock.LockError>;
+  readonly install: (
+    dir: string,
+    input?: {
+      add: {
+        name: string;
+        version?: string;
+      }[];
+    }
+  ) => Effect.Effect<void, Flock.LockError | SchemaNpm.InstallFailedError>;
 }
 
 export class Service extends Context.Service<Service, Interface>()('@openchat/Npm') {}
@@ -108,8 +117,70 @@ export const layer = Layer.effect(
       return resolveEntryPoint(first.name, first.path);
     }, Effect.scoped);
 
+    const install: Interface['install'] = Effect.fn('Npm.install')(function* (dir, input) {
+      const canWrite = yield* afs.access(dir, { writable: true }).pipe(
+        Effect.as(true),
+        Effect.orElseSucceed(() => false)
+      );
+      if (!canWrite) {
+        return;
+      }
+
+      const add = input?.add.map(pkg => [pkg.name, pkg.version].filter(Boolean).join('@')) ?? [];
+      if (
+        yield* Effect.gen(function* () {
+          const nodeModulesExists = yield* afs.existsSafe(path.join(dir, 'node_modules'));
+          if (!nodeModulesExists) {
+            yield* reify({ add, dir });
+            return true;
+          }
+          return false;
+        }).pipe(Effect.withSpan('Npm.checkNodeModules'))
+      ) {
+        return;
+      }
+
+      yield* Effect.gen(function* () {
+        const pkg = yield* afs
+          .readJson(path.join(dir, 'package.json'))
+          .pipe(Effect.orElseSucceed(() => ({})));
+        const lock = yield* afs
+          .readJson(path.join(dir, 'package-lock.json'))
+          .pipe(Effect.orElseSucceed(() => ({})));
+
+        const pkgAny = pkg as Record<string, unknown>;
+        const lockAny = lock as Record<string, unknown>;
+        const declared = new Set([
+          ...Object.keys(pkgAny?.dependencies || {}),
+          ...Object.keys(pkgAny?.devDependencies || {}),
+          ...Object.keys(pkgAny?.peerDependencies || {}),
+          ...Object.keys(pkgAny?.optionalDependencies || {}),
+          ...(input?.add || []).map(pkg => pkg.name)
+        ]);
+
+        // @ts-ignore
+        const root = (lockAny?.packages?.[''] || {}) as Record<string, unknown>;
+        const locked = new Set([
+          ...Object.keys(root?.dependencies || {}),
+          ...Object.keys(root?.devDependencies || {}),
+          ...Object.keys(root?.peerDependencies || {}),
+          ...Object.keys(root?.optionalDependencies || {})
+        ]);
+
+        for (const name of declared) {
+          if (!locked.has(name)) {
+            yield* reify({ dir, add });
+            return;
+          }
+        }
+      }).pipe(Effect.withSpan('Npm.checkDirty'));
+
+      return;
+    }, Effect.scoped);
+
     return Service.of({
-      add
+      add,
+      install
     });
   })
 );

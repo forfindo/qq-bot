@@ -2,6 +2,44 @@ import { Effect, Schema } from 'effect';
 import { SchemaTool } from '@/schema';
 import * as Truncate from './truncate';
 import { Agent } from '@/agent';
+import z from 'zod';
+
+type AskInput = {
+  permission: string;
+  patterns: string[];
+  always: string[];
+  metadata: { [key: string]: unknown };
+};
+
+export type ToolAttachment = {
+  type: 'file';
+  mime: string;
+  url: string;
+  filename?: string;
+};
+
+export type ToolResult =
+  | string
+  | {
+      title?: string;
+      output: string;
+      metadata?: { [key: string]: unknown };
+      attachments?: ToolAttachment[];
+    };
+
+export type ToolContext = {
+  sessionID: string;
+  messageID: string;
+  agent: string;
+  /**
+   * Current project directory for this session.
+   * Prefer this over process.cwd() when resolving relative paths.
+   */
+  directory: string;
+  abort: AbortSignal;
+  metadata(input: { title?: string; metadata?: { [key: string]: unknown } }): void;
+  ask(input: AskInput): Promise<void>;
+};
 
 type Init<Parameters extends Schema.Decoder<unknown>, M extends SchemaTool.Metadata> =
   | SchemaTool.DefWithoutID<Parameters, M>
@@ -83,3 +121,26 @@ export function define<
     { id }
   );
 }
+
+export function init<P extends Schema.Decoder<unknown>, M extends SchemaTool.Metadata>(
+  info: SchemaTool.Info<P, M>
+): Effect.Effect<SchemaTool.Def<P, M>> {
+  return Effect.gen(function* () {
+    const init = yield* info.init();
+    return {
+      ...init,
+      id: info.id
+    };
+  });
+}
+
+export function tool<Args extends z.ZodRawShape>(input: {
+  description: string;
+  args: Args;
+  execute(args: z.infer<z.ZodObject<Args>>, context: ToolContext): Promise<ToolResult>;
+}) {
+  return input;
+}
+tool.schema = z;
+
+export type ToolDefinition = ReturnType<typeof tool>;

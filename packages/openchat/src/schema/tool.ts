@@ -47,8 +47,8 @@ export interface Def<
   description: string;
   parameters: Parameters;
   jsonSchema?: JSONSchema7;
-  execute(args: Schema.Schema.Type<Parameters>, ctx: Context): Effect.Effect<ExecuteResult<M>>;
-  formatValidationError?(error: unknown): string;
+  execute: (args: Schema.Schema.Type<Parameters>, ctx: Context) => Effect.Effect<ExecuteResult<M>>;
+  formatValidationError?: (error: unknown) => string;
 }
 
 export type DefWithoutID<
@@ -63,3 +63,10 @@ export interface Info<
   id: string;
   init: () => Effect.Effect<DefWithoutID<Parameters, M>>;
 }
+
+export type InferDef<T> =
+  T extends Info<infer P, infer M>
+    ? Def<P, M>
+    : T extends Effect.Effect<Info<infer P, infer M>, unknown, unknown>
+      ? Def<P, M>
+      : never;

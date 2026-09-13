@@ -51,7 +51,8 @@ describe('image service', () => {
             }
           }
         });
-      }
+      },
+      waitForDependencies: () => Effect.void
     };
   }
 

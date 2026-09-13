@@ -1,4 +1,4 @@
-import { Context, Duration, Effect, Layer, pipe, Record, Result } from 'effect';
+import { Context, Duration, Effect, Exit, Fiber, Layer, pipe, Record, Result } from 'effect';
 import { SchemaConfig, SchemaPermission } from '@/schema';
 import { ServiceState, InstanceContext } from '@/instance';
 import { mergeDeep, unique } from 'remeda';
@@ -13,6 +13,7 @@ import { jsonc, schema } from '@/config/parse';
 import * as ConfigCommand from './command';
 import * as ConfigAgent from './agent';
 import { applyEdits, modify } from 'jsonc-parser';
+import { Npm } from '@/npm';
 
 const log = Log.create();
 
@@ -36,9 +37,11 @@ export interface Interface {
   ) => Effect.Effect<{ info: SchemaConfig.Info; changed: boolean }>;
   readonly invalidate: () => Effect.Effect<void>;
   readonly directories: () => Effect.Effect<string[]>;
+  readonly waitForDependencies: () => Effect.Effect<void>;
 }
 
 type State = {
+  deps: Fiber.Fiber<void>[];
   config: SchemaConfig.Info;
   directories: string[];
 };
@@ -86,6 +89,7 @@ export const layer = Layer.effect(
   Service,
   Effect.gen(function* () {
     const authSvc = yield* Auth.Service;
+    const npmSvc = yield* Npm.Service;
     const fs = yield* AppFileSystem.Service;
 
     const readConfigFile = (filepath: string) => fs.readFileStringSafe(filepath).pipe(Effect.orDie);
@@ -279,6 +283,8 @@ export const layer = Layer.effect(
           log.debug('loading config from CONFIG_DIR', { path: Flag.CONFIG_DIR });
         }
 
+        const deps: Fiber.Fiber<void>[] = [];
+
         for (const dir of dirs) {
           if (dir !== Global.Path.config) {
             for (const file of ['openchat.json', 'openchat.jsonc']) {
@@ -289,6 +295,21 @@ export const layer = Layer.effect(
               result.mode ??= {};
             }
           }
+
+          const dep = yield* npmSvc.install(dir).pipe(
+            Effect.exit,
+            Effect.tap(exit =>
+              Exit.isFailure(exit)
+                ? Effect.logWarning('background dependency install failed', {
+                    dir,
+                    error: String(exit.cause)
+                  })
+                : Effect.void
+            ),
+            Effect.asVoid,
+            Effect.forkDetach
+          );
+          deps.push(dep);
 
           result.command = mergeDeep(result.command ?? {}, yield* ConfigCommand.load(dir));
           result.agent = mergeDeep(result.agent ?? {}, yield* ConfigAgent.load(dir));
@@ -339,6 +360,7 @@ export const layer = Layer.effect(
         }
 
         return {
+          deps,
           config: result,
           directories: dirs
         };
@@ -417,18 +439,26 @@ export const layer = Layer.effect(
       Effect.orDie
     );
 
+    const waitForDependencies = Effect.fn('Config.waitForDependencies')(function* () {
+      yield* ServiceState.useEffect(state, s =>
+        Effect.forEach(s.deps, Fiber.join, { concurrency: 'unbounded' }).pipe(Effect.asVoid)
+      );
+    });
+
     return Service.of({
       get,
       update,
       getGlobal,
       invalidate,
       directories,
-      updateGlobal
+      updateGlobal,
+      waitForDependencies
     });
   })
 );
 
 export const defaultLayer = layer.pipe(
   Layer.provide(Auth.defaultLayer),
+  Layer.provide(Npm.defaultLayer),
   Layer.provide(AppFileSystem.defaultLayer)
 );
