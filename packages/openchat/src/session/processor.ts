@@ -85,6 +85,7 @@ export const layer = Layer.effect(
     const event = yield* Event.Service;
     const agents = yield* Agent.Service;
     const status = yield* SessionStatus.Service;
+    const database = yield* Database.Service;
 
     const create = (input: Input) => {
       // Pre-capture snapshot before the LLM stream starts. The AI SDK
@@ -211,428 +212,435 @@ export const layer = Layer.effect(
         return true;
       });
 
-      const handleEvent = Effect.fnUntraced(function* (value: StreamEvent) {
-        switch (value.type) {
-          case 'start':
-            yield* status.set(ctx.sessionID, { type: 'busy' });
-            return;
-
-          case 'reasoning-start':
-            if (value.id in ctx.reasoningMap) {
+      const handleEvent = Effect.fnUntraced(
+        function* (value: StreamEvent) {
+          switch (value.type) {
+            case 'start':
+              yield* status.set(ctx.sessionID, { type: 'busy' });
               return;
-            }
-            // TODO(v2): Temporary dual-write while migrating session messages to v2 events.
-            if (Flag.EXPERIMENTAL_EVENT_SYSTEM) {
-              yield* event.publish(SchemaSession.DurableEvent.Reasoning.Started, {
-                assistantMessageID: ctx.assistantMessage.id,
-                sessionID: ctx.sessionID,
-                reasoningID: value.id,
-                timestamp: DateTime.makeUnsafe(Date.now())
-              });
-            }
-            ctx.reasoningMap[value.id] = {
-              id: SchemaMessage.PartID.ascending(),
-              messageID: ctx.assistantMessage.id,
-              sessionID: ctx.assistantMessage.sessionID,
-              type: 'reasoning',
-              text: '',
-              time: { start: Date.now() },
-              metadata: value.providerMetadata
-            };
-            yield* session.updatePart(ctx.reasoningMap[value.id]!);
-            return;
 
-          case 'reasoning-delta':
-            if (!(value.id in ctx.reasoningMap)) {
-              return;
-            }
-            ctx.reasoningMap[value.id]!.text += value.text;
-            if (value.providerMetadata) {
-              ctx.reasoningMap[value.id]!.metadata = value.providerMetadata;
-            }
-            yield* session.updatePartDelta({
-              sessionID: ctx.reasoningMap[value.id]!.sessionID,
-              messageID: ctx.reasoningMap[value.id]!.messageID,
-              partID: ctx.reasoningMap[value.id]!.id,
-              field: 'text',
-              delta: value.text
-            });
-            return;
-
-          case 'reasoning-end':
-            if (!(value.id in ctx.reasoningMap)) {
-              return;
-            }
-            // TODO(v2): Temporary dual-write while migrating session messages to v2 events.
-            if (Flag.EXPERIMENTAL_EVENT_SYSTEM) {
-              yield* event.publish(SchemaSession.DurableEvent.Reasoning.Ended, {
-                assistantMessageID: ctx.assistantMessage.id,
-                sessionID: ctx.sessionID,
-                reasoningID: value.id,
-                text: ctx.reasoningMap[value.id]!.text,
-                timestamp: DateTime.makeUnsafe(Date.now())
-              });
-            }
-            ctx.reasoningMap[value.id]!.time = {
-              ...ctx.reasoningMap[value.id]!.time,
-              end: Date.now()
-            };
-            if (value.providerMetadata) {
-              ctx.reasoningMap[value.id]!.metadata = value.providerMetadata;
-            }
-            yield* session.updatePart(ctx.reasoningMap[value.id]!);
-            delete ctx.reasoningMap[value.id];
-            return;
-
-          case 'tool-input-start': {
-            if (ctx.assistantMessage.summary) {
-              throw new Error(`Tool call not allowed while generating summary: ${value.toolName}`);
-            }
-            // TODO(v2): Temporary dual-write while migrating session messages to v2 events.
-            if (Flag.EXPERIMENTAL_EVENT_SYSTEM) {
-              yield* event.publish(SchemaSession.DurableEvent.Tool.Input.Started, {
-                assistantMessageID: ctx.assistantMessage.id,
-                sessionID: ctx.sessionID,
-                callID: value.id,
-                name: value.toolName,
-                timestamp: DateTime.makeUnsafe(Date.now())
-              });
-            }
-            const part = yield* session.updatePart({
-              id: ctx.toolcalls[value.id]?.partID ?? SchemaMessage.PartID.ascending(),
-              messageID: ctx.assistantMessage.id,
-              sessionID: ctx.assistantMessage.sessionID,
-              type: 'tool',
-              tool: value.toolName,
-              callID: value.id,
-              state: { status: 'pending', input: {}, raw: '' },
-              metadata: value.providerExecuted ? { providerExecuted: true } : void 0
-            } satisfies SchemaMessage.ToolPart);
-            ctx.toolcalls[value.id] = {
-              done: yield* Deferred.make<void>(),
-              partID: part.id,
-              messageID: part.messageID,
-              sessionID: part.sessionID
-            };
-            return;
-          }
-
-          case 'tool-input-delta':
-            return;
-
-          case 'tool-input-end': {
-            // TODO(v2): Temporary dual-write while migrating session messages to v2 events.
-            if (Flag.EXPERIMENTAL_EVENT_SYSTEM) {
-              yield* event.publish(SchemaSession.DurableEvent.Tool.Input.Ended, {
-                assistantMessageID: ctx.assistantMessage.id,
-                sessionID: ctx.sessionID,
-                callID: value.id,
+            case 'reasoning-start':
+              if (value.id in ctx.reasoningMap) {
+                return;
+              }
+              // TODO(v2): Temporary dual-write while migrating session messages to v2 events.
+              if (Flag.EXPERIMENTAL_EVENT_SYSTEM) {
+                yield* event.publish(SchemaSession.DurableEvent.Reasoning.Started, {
+                  assistantMessageID: ctx.assistantMessage.id,
+                  sessionID: ctx.sessionID,
+                  reasoningID: value.id,
+                  timestamp: DateTime.makeUnsafe(Date.now())
+                });
+              }
+              ctx.reasoningMap[value.id] = {
+                id: SchemaMessage.PartID.ascending(),
+                messageID: ctx.assistantMessage.id,
+                sessionID: ctx.assistantMessage.sessionID,
+                type: 'reasoning',
                 text: '',
-                timestamp: DateTime.makeUnsafe(Date.now())
-              });
-            }
-            return;
-          }
+                time: { start: Date.now() },
+                metadata: value.providerMetadata
+              };
+              yield* session.updatePart(ctx.reasoningMap[value.id]!);
+              return;
 
-          case 'tool-call': {
-            if (ctx.assistantMessage.summary) {
-              throw new Error(`Tool call not allowed while generating summary: ${value.toolName}`);
-            }
-            const toolCall = yield* readToolCall(value.toolCallId);
-            // TODO(v2): Temporary dual-write while migrating session messages to v2 events.
-            if (Flag.EXPERIMENTAL_EVENT_SYSTEM) {
-              yield* event.publish(SchemaSession.DurableEvent.Tool.Called, {
-                assistantMessageID: ctx.assistantMessage.id,
-                sessionID: ctx.sessionID,
-                callID: value.toolCallId,
+            case 'reasoning-delta':
+              if (!(value.id in ctx.reasoningMap)) {
+                return;
+              }
+              ctx.reasoningMap[value.id]!.text += value.text;
+              if (value.providerMetadata) {
+                ctx.reasoningMap[value.id]!.metadata = value.providerMetadata;
+              }
+              yield* session.updatePartDelta({
+                sessionID: ctx.reasoningMap[value.id]!.sessionID,
+                messageID: ctx.reasoningMap[value.id]!.messageID,
+                partID: ctx.reasoningMap[value.id]!.id,
+                field: 'text',
+                delta: value.text
+              });
+              return;
+
+            case 'reasoning-end':
+              if (!(value.id in ctx.reasoningMap)) {
+                return;
+              }
+              // TODO(v2): Temporary dual-write while migrating session messages to v2 events.
+              if (Flag.EXPERIMENTAL_EVENT_SYSTEM) {
+                yield* event.publish(SchemaSession.DurableEvent.Reasoning.Ended, {
+                  assistantMessageID: ctx.assistantMessage.id,
+                  sessionID: ctx.sessionID,
+                  reasoningID: value.id,
+                  text: ctx.reasoningMap[value.id]!.text,
+                  timestamp: DateTime.makeUnsafe(Date.now())
+                });
+              }
+              ctx.reasoningMap[value.id]!.time = {
+                ...ctx.reasoningMap[value.id]!.time,
+                end: Date.now()
+              };
+              if (value.providerMetadata) {
+                ctx.reasoningMap[value.id]!.metadata = value.providerMetadata;
+              }
+              yield* session.updatePart(ctx.reasoningMap[value.id]!);
+              delete ctx.reasoningMap[value.id];
+              return;
+
+            case 'tool-input-start': {
+              if (ctx.assistantMessage.summary) {
+                throw new Error(
+                  `Tool call not allowed while generating summary: ${value.toolName}`
+                );
+              }
+              // TODO(v2): Temporary dual-write while migrating session messages to v2 events.
+              if (Flag.EXPERIMENTAL_EVENT_SYSTEM) {
+                yield* event.publish(SchemaSession.DurableEvent.Tool.Input.Started, {
+                  assistantMessageID: ctx.assistantMessage.id,
+                  sessionID: ctx.sessionID,
+                  callID: value.id,
+                  name: value.toolName,
+                  timestamp: DateTime.makeUnsafe(Date.now())
+                });
+              }
+              const part = yield* session.updatePart({
+                id: ctx.toolcalls[value.id]?.partID ?? SchemaMessage.PartID.ascending(),
+                messageID: ctx.assistantMessage.id,
+                sessionID: ctx.assistantMessage.sessionID,
+                type: 'tool',
                 tool: value.toolName,
-                input: value.input as Record<string, unknown>,
-                provider: {
-                  executed: toolCall?.part.metadata?.providerExecuted === true,
-                  ...(value.providerMetadata ? { metadata: value.providerMetadata } : {})
-                },
-                timestamp: DateTime.makeUnsafe(Date.now())
-              });
-            }
-            yield* updateToolCall(value.toolCallId, match => ({
-              ...match,
-              tool: value.toolName,
-              state: {
-                ...match.state,
-                status: 'running',
-                input: value.input as Record<string, unknown>,
-                time: { start: Date.now() }
-              },
-              metadata: match.metadata?.providerExecuted
-                ? { ...value.providerMetadata, providerExecuted: true }
-                : value.providerMetadata
-            }));
-
-            const parts = yield* Message.parts(ctx.assistantMessage.id);
-            const recentParts = parts.slice(-DOOM_LOOP_THRESHOLD);
-
-            if (
-              recentParts.length !== DOOM_LOOP_THRESHOLD ||
-              !recentParts.every(
-                part =>
-                  part.type === 'tool' &&
-                  part.tool === value.toolName &&
-                  part.state.status !== 'pending' &&
-                  JSON.stringify(part.state.input) === JSON.stringify(value.input)
-              )
-            ) {
+                callID: value.id,
+                state: { status: 'pending', input: {}, raw: '' },
+                metadata: value.providerExecuted ? { providerExecuted: true } : void 0
+              } satisfies SchemaMessage.ToolPart);
+              ctx.toolcalls[value.id] = {
+                done: yield* Deferred.make<void>(),
+                partID: part.id,
+                messageID: part.messageID,
+                sessionID: part.sessionID
+              };
               return;
             }
 
-            const agent = yield* agents.get(ctx.assistantMessage.agent);
-            yield* permission.ask({
-              permission: 'doom_loop',
-              patterns: [value.toolName],
-              sessionID: ctx.assistantMessage.sessionID,
-              metadata: { tool: value.toolName, input: value.input },
-              always: [value.toolName],
-              ruleset: agent!.permission
-            });
-            return;
-          }
+            case 'tool-input-delta':
+              return;
 
-          case 'tool-result': {
-            const toolCall = yield* readToolCall(value.toolCallId);
-            const toolAttachments: SchemaMessage.FilePart[] = (
-              TypeGuard.isRecord(value.output) && Array.isArray(value.output.attachments)
-                ? value.output.attachments
-                : []
-            ).filter(
-              (attachment: unknown): attachment is SchemaMessage.FilePart =>
-                TypeGuard.isRecord(attachment) &&
-                attachment.type === 'file' &&
-                typeof attachment.mime === 'string' &&
-                typeof attachment.url === 'string'
-            );
-            const normalized = yield* Effect.forEach(toolAttachments, attachment =>
-              attachment.mime.startsWith('image/')
-                ? image.normalize(attachment).pipe(
-                    Effect.catchIf(
-                      error => error instanceof SchemaImage.ResizerUnavailableError,
-                      () => Effect.succeed(attachment)
-                    ),
-                    Effect.exit
-                  )
-                : Effect.succeed(Exit.succeed<SchemaMessage.FilePart>(attachment))
-            );
-            const omitted = normalized.filter(Exit.isFailure).length;
-            const attachments = normalized.filter(Exit.isSuccess).map(item => item.value);
-            const output = {
-              ...value.output,
-              output:
-                omitted === 0
-                  ? (value.output as { output: string }).output
-                  : `${(value.output as { output: string }).output}\n\n[${omitted} image${omitted === 1 ? '' : 's'} omitted: could not be resized below the image size limit.]`,
-              attachments: attachments?.length ? attachments : void 0
-            } as {
-              title: string;
-              metadata: Record<string, unknown>;
-              output: string;
-              attachments?: SchemaMessage.FilePart[];
-            };
-            // TODO(v2): Temporary dual-write while migrating session messages to v2 events.
-            if (Flag.EXPERIMENTAL_EVENT_SYSTEM) {
-              yield* event.publish(SchemaSession.DurableEvent.Tool.Success, {
-                assistantMessageID: ctx.assistantMessage.id,
-                sessionID: ctx.sessionID,
-                callID: value.toolCallId,
-                structured: output.metadata,
-                content: [
-                  {
-                    type: 'text',
-                    text: output.output
-                  },
-                  ...(output.attachments?.map((item: SchemaMessage.FilePart) => ({
-                    type: 'file' as const,
-                    uri: item.url,
-                    mime: item.mime,
-                    name: item.filename
-                  })) ?? [])
-                ],
-                provider: {
-                  executed: toolCall?.part.metadata?.providerExecuted === true
-                },
-                timestamp: DateTime.makeUnsafe(Date.now())
-              });
-            }
-            yield* completeToolCall(value.toolCallId, output);
-            return;
-          }
-
-          case 'tool-error': {
-            const toolCall = yield* readToolCall(value.toolCallId);
-            // TODO(v2): Temporary dual-write while migrating session messages to v2 events.
-            if (Flag.EXPERIMENTAL_EVENT_SYSTEM) {
-              yield* event.publish(SchemaSession.DurableEvent.Tool.Failed, {
-                assistantMessageID: ctx.assistantMessage.id,
-                sessionID: ctx.sessionID,
-                callID: value.toolCallId,
-                error: {
-                  type: 'unknown',
-                  message: AppError.errorMessage(value.error)
-                },
-                provider: {
-                  executed: toolCall?.part.metadata?.providerExecuted === true
-                },
-                timestamp: DateTime.makeUnsafe(Date.now())
-              });
-            }
-            yield* failToolCall(value.toolCallId, value.error);
-            return;
-          }
-
-          case 'error':
-            throw value.error;
-
-          case 'start-step':
-            if (!ctx.assistantMessage.summary) {
+            case 'tool-input-end': {
               // TODO(v2): Temporary dual-write while migrating session messages to v2 events.
               if (Flag.EXPERIMENTAL_EVENT_SYSTEM) {
-                yield* event.publish(SchemaSession.DurableEvent.Step.Started, {
+                yield* event.publish(SchemaSession.DurableEvent.Tool.Input.Ended, {
                   assistantMessageID: ctx.assistantMessage.id,
                   sessionID: ctx.sessionID,
-                  agent: input.assistantMessage.agent,
-                  model: {
-                    modelID: SchemaProvider.ModelID.make(ctx.model.id),
-                    providerID: SchemaProvider.ProviderID.make(ctx.model.providerID),
-                    variant: SchemaProvider.VariantID.make(
-                      input.assistantMessage.variant ?? 'default'
+                  callID: value.id,
+                  text: '',
+                  timestamp: DateTime.makeUnsafe(Date.now())
+                });
+              }
+              return;
+            }
+
+            case 'tool-call': {
+              if (ctx.assistantMessage.summary) {
+                throw new Error(
+                  `Tool call not allowed while generating summary: ${value.toolName}`
+                );
+              }
+              const toolCall = yield* readToolCall(value.toolCallId);
+              // TODO(v2): Temporary dual-write while migrating session messages to v2 events.
+              if (Flag.EXPERIMENTAL_EVENT_SYSTEM) {
+                yield* event.publish(SchemaSession.DurableEvent.Tool.Called, {
+                  assistantMessageID: ctx.assistantMessage.id,
+                  sessionID: ctx.sessionID,
+                  callID: value.toolCallId,
+                  tool: value.toolName,
+                  input: value.input as Record<string, unknown>,
+                  provider: {
+                    executed: toolCall?.part.metadata?.providerExecuted === true,
+                    ...(value.providerMetadata ? { metadata: value.providerMetadata } : {})
+                  },
+                  timestamp: DateTime.makeUnsafe(Date.now())
+                });
+              }
+              yield* updateToolCall(value.toolCallId, match => ({
+                ...match,
+                tool: value.toolName,
+                state: {
+                  ...match.state,
+                  status: 'running',
+                  input: value.input as Record<string, unknown>,
+                  time: { start: Date.now() }
+                },
+                metadata: match.metadata?.providerExecuted
+                  ? { ...value.providerMetadata, providerExecuted: true }
+                  : value.providerMetadata
+              }));
+
+              const parts = yield* Message.parts(ctx.assistantMessage.id);
+              const recentParts = parts.slice(-DOOM_LOOP_THRESHOLD);
+
+              if (
+                recentParts.length !== DOOM_LOOP_THRESHOLD ||
+                !recentParts.every(
+                  part =>
+                    part.type === 'tool' &&
+                    part.tool === value.toolName &&
+                    part.state.status !== 'pending' &&
+                    JSON.stringify(part.state.input) === JSON.stringify(value.input)
+                )
+              ) {
+                return;
+              }
+
+              const agent = yield* agents.get(ctx.assistantMessage.agent);
+              yield* permission.ask({
+                permission: 'doom_loop',
+                patterns: [value.toolName],
+                sessionID: ctx.assistantMessage.sessionID,
+                metadata: { tool: value.toolName, input: value.input },
+                always: [value.toolName],
+                ruleset: agent!.permission
+              });
+              return;
+            }
+
+            case 'tool-result': {
+              const toolCall = yield* readToolCall(value.toolCallId);
+              const toolAttachments: SchemaMessage.FilePart[] = (
+                TypeGuard.isRecord(value.output) && Array.isArray(value.output.attachments)
+                  ? value.output.attachments
+                  : []
+              ).filter(
+                (attachment: unknown): attachment is SchemaMessage.FilePart =>
+                  TypeGuard.isRecord(attachment) &&
+                  attachment.type === 'file' &&
+                  typeof attachment.mime === 'string' &&
+                  typeof attachment.url === 'string'
+              );
+              const normalized = yield* Effect.forEach(toolAttachments, attachment =>
+                attachment.mime.startsWith('image/')
+                  ? image.normalize(attachment).pipe(
+                      Effect.catchIf(
+                        error => error instanceof SchemaImage.ResizerUnavailableError,
+                        () => Effect.succeed(attachment)
+                      ),
+                      Effect.exit
                     )
+                  : Effect.succeed(Exit.succeed<SchemaMessage.FilePart>(attachment))
+              );
+              const omitted = normalized.filter(Exit.isFailure).length;
+              const attachments = normalized.filter(Exit.isSuccess).map(item => item.value);
+              const output = {
+                ...value.output,
+                output:
+                  omitted === 0
+                    ? (value.output as { output: string }).output
+                    : `${(value.output as { output: string }).output}\n\n[${omitted} image${omitted === 1 ? '' : 's'} omitted: could not be resized below the image size limit.]`,
+                attachments: attachments?.length ? attachments : void 0
+              } as {
+                title: string;
+                metadata: Record<string, unknown>;
+                output: string;
+                attachments?: SchemaMessage.FilePart[];
+              };
+              // TODO(v2): Temporary dual-write while migrating session messages to v2 events.
+              if (Flag.EXPERIMENTAL_EVENT_SYSTEM) {
+                yield* event.publish(SchemaSession.DurableEvent.Tool.Success, {
+                  assistantMessageID: ctx.assistantMessage.id,
+                  sessionID: ctx.sessionID,
+                  callID: value.toolCallId,
+                  structured: output.metadata,
+                  content: [
+                    {
+                      type: 'text',
+                      text: output.output
+                    },
+                    ...(output.attachments?.map((item: SchemaMessage.FilePart) => ({
+                      type: 'file' as const,
+                      uri: item.url,
+                      mime: item.mime,
+                      name: item.filename
+                    })) ?? [])
+                  ],
+                  provider: {
+                    executed: toolCall?.part.metadata?.providerExecuted === true
                   },
                   timestamp: DateTime.makeUnsafe(Date.now())
                 });
               }
+              yield* completeToolCall(value.toolCallId, output);
+              return;
             }
-            yield* session.updatePart({
-              id: SchemaMessage.PartID.ascending(),
-              messageID: ctx.assistantMessage.id,
-              sessionID: ctx.sessionID,
-              type: 'step-start'
-            });
-            return;
 
-          case 'finish-step': {
-            const usage = Session.getUsage({
-              model: ctx.model,
-              usage: value.usage,
-              metadata: value.providerMetadata
-            });
-            if (!ctx.assistantMessage.summary) {
+            case 'tool-error': {
+              const toolCall = yield* readToolCall(value.toolCallId);
               // TODO(v2): Temporary dual-write while migrating session messages to v2 events.
               if (Flag.EXPERIMENTAL_EVENT_SYSTEM) {
-                yield* event.publish(SchemaSession.DurableEvent.Step.Ended, {
+                yield* event.publish(SchemaSession.DurableEvent.Tool.Failed, {
                   assistantMessageID: ctx.assistantMessage.id,
                   sessionID: ctx.sessionID,
-                  finish: value.finishReason,
-                  cost: usage.cost,
-                  tokens: usage.tokens,
+                  callID: value.toolCallId,
+                  error: {
+                    type: 'unknown',
+                    message: AppError.errorMessage(value.error)
+                  },
+                  provider: {
+                    executed: toolCall?.part.metadata?.providerExecuted === true
+                  },
                   timestamp: DateTime.makeUnsafe(Date.now())
                 });
               }
+              yield* failToolCall(value.toolCallId, value.error);
+              return;
             }
-            ctx.assistantMessage.finish = value.finishReason;
-            ctx.assistantMessage.cost += usage.cost;
-            ctx.assistantMessage.tokens = usage.tokens;
-            yield* session.updatePart({
-              id: SchemaMessage.PartID.ascending(),
-              reason: value.finishReason,
-              messageID: ctx.assistantMessage.id,
-              sessionID: ctx.assistantMessage.sessionID,
-              type: 'step-finish',
-              tokens: usage.tokens,
-              cost: usage.cost
-            });
-            yield* session.updateMessage(ctx.assistantMessage);
-            if (
-              !ctx.assistantMessage.summary &&
-              isOverflow({ cfg: yield* config.get(), tokens: usage.tokens, model: ctx.model })
-            ) {
-              ctx.needsCompaction = true;
+
+            case 'error':
+              throw value.error;
+
+            case 'start-step':
+              if (!ctx.assistantMessage.summary) {
+                // TODO(v2): Temporary dual-write while migrating session messages to v2 events.
+                if (Flag.EXPERIMENTAL_EVENT_SYSTEM) {
+                  yield* event.publish(SchemaSession.DurableEvent.Step.Started, {
+                    assistantMessageID: ctx.assistantMessage.id,
+                    sessionID: ctx.sessionID,
+                    agent: input.assistantMessage.agent,
+                    model: {
+                      modelID: SchemaProvider.ModelID.make(ctx.model.id),
+                      providerID: SchemaProvider.ProviderID.make(ctx.model.providerID),
+                      variant: SchemaProvider.VariantID.make(
+                        input.assistantMessage.variant ?? 'default'
+                      )
+                    },
+                    timestamp: DateTime.makeUnsafe(Date.now())
+                  });
+                }
+              }
+              yield* session.updatePart({
+                id: SchemaMessage.PartID.ascending(),
+                messageID: ctx.assistantMessage.id,
+                sessionID: ctx.sessionID,
+                type: 'step-start'
+              });
+              return;
+
+            case 'finish-step': {
+              const usage = Session.getUsage({
+                model: ctx.model,
+                usage: value.usage,
+                metadata: value.providerMetadata
+              });
+              if (!ctx.assistantMessage.summary) {
+                // TODO(v2): Temporary dual-write while migrating session messages to v2 events.
+                if (Flag.EXPERIMENTAL_EVENT_SYSTEM) {
+                  yield* event.publish(SchemaSession.DurableEvent.Step.Ended, {
+                    assistantMessageID: ctx.assistantMessage.id,
+                    sessionID: ctx.sessionID,
+                    finish: value.finishReason,
+                    cost: usage.cost,
+                    tokens: usage.tokens,
+                    timestamp: DateTime.makeUnsafe(Date.now())
+                  });
+                }
+              }
+              ctx.assistantMessage.finish = value.finishReason;
+              ctx.assistantMessage.cost += usage.cost;
+              ctx.assistantMessage.tokens = usage.tokens;
+              yield* session.updatePart({
+                id: SchemaMessage.PartID.ascending(),
+                reason: value.finishReason,
+                messageID: ctx.assistantMessage.id,
+                sessionID: ctx.assistantMessage.sessionID,
+                type: 'step-finish',
+                tokens: usage.tokens,
+                cost: usage.cost
+              });
+              yield* session.updateMessage(ctx.assistantMessage);
+              if (
+                !ctx.assistantMessage.summary &&
+                isOverflow({ cfg: yield* config.get(), tokens: usage.tokens, model: ctx.model })
+              ) {
+                ctx.needsCompaction = true;
+              }
+              return;
             }
-            return;
+
+            case 'text-start':
+              if (!ctx.assistantMessage.summary) {
+                // TODO(v2): Temporary dual-write while migrating session messages to v2 events.
+                if (Flag.EXPERIMENTAL_EVENT_SYSTEM) {
+                  yield* event.publish(SchemaSession.DurableEvent.Text.Started, {
+                    assistantMessageID: ctx.assistantMessage.id,
+                    sessionID: ctx.sessionID,
+                    timestamp: DateTime.makeUnsafe(Date.now()),
+                    textID: value.id
+                  });
+                }
+              }
+              ctx.currentText = {
+                id: SchemaMessage.PartID.ascending(),
+                messageID: ctx.assistantMessage.id,
+                sessionID: ctx.assistantMessage.sessionID,
+                type: 'text',
+                text: '',
+                time: { start: Date.now() },
+                metadata: value.providerMetadata
+              };
+              yield* session.updatePart(ctx.currentText);
+              return;
+
+            case 'text-delta':
+              if (!ctx.currentText) {
+                return;
+              }
+              ctx.currentText.text += value.text;
+              if (value.providerMetadata) {
+                ctx.currentText.metadata = value.providerMetadata;
+              }
+              yield* session.updatePartDelta({
+                sessionID: ctx.currentText.sessionID,
+                messageID: ctx.currentText.messageID,
+                partID: ctx.currentText.id,
+                field: 'text',
+                delta: value.text
+              });
+              return;
+
+            case 'text-end':
+              if (!ctx.currentText) {
+                return;
+              }
+              if (!ctx.assistantMessage.summary) {
+                // TODO(v2): Temporary dual-write while migrating session messages to v2 events.
+                if (Flag.EXPERIMENTAL_EVENT_SYSTEM) {
+                  yield* event.publish(SchemaSession.DurableEvent.Text.Ended, {
+                    assistantMessageID: ctx.assistantMessage.id,
+                    textID: value.id,
+                    sessionID: ctx.sessionID,
+                    text: ctx.currentText.text,
+                    timestamp: DateTime.makeUnsafe(Date.now())
+                  });
+                }
+              }
+              {
+                const end = Date.now();
+                ctx.currentText.time = { start: ctx.currentText.time?.start ?? end, end };
+              }
+              if (value.providerMetadata) {
+                ctx.currentText.metadata = value.providerMetadata;
+              }
+              yield* session.updatePart(ctx.currentText);
+              ctx.currentText = void 0;
+              return;
+
+            case 'finish':
+              return;
+
+            default:
+              log.info('unhandled', { event: value.type, value });
+              return;
           }
-
-          case 'text-start':
-            if (!ctx.assistantMessage.summary) {
-              // TODO(v2): Temporary dual-write while migrating session messages to v2 events.
-              if (Flag.EXPERIMENTAL_EVENT_SYSTEM) {
-                yield* event.publish(SchemaSession.DurableEvent.Text.Started, {
-                  assistantMessageID: ctx.assistantMessage.id,
-                  sessionID: ctx.sessionID,
-                  timestamp: DateTime.makeUnsafe(Date.now()),
-                  textID: value.id
-                });
-              }
-            }
-            ctx.currentText = {
-              id: SchemaMessage.PartID.ascending(),
-              messageID: ctx.assistantMessage.id,
-              sessionID: ctx.assistantMessage.sessionID,
-              type: 'text',
-              text: '',
-              time: { start: Date.now() },
-              metadata: value.providerMetadata
-            };
-            yield* session.updatePart(ctx.currentText);
-            return;
-
-          case 'text-delta':
-            if (!ctx.currentText) {
-              return;
-            }
-            ctx.currentText.text += value.text;
-            if (value.providerMetadata) {
-              ctx.currentText.metadata = value.providerMetadata;
-            }
-            yield* session.updatePartDelta({
-              sessionID: ctx.currentText.sessionID,
-              messageID: ctx.currentText.messageID,
-              partID: ctx.currentText.id,
-              field: 'text',
-              delta: value.text
-            });
-            return;
-
-          case 'text-end':
-            if (!ctx.currentText) {
-              return;
-            }
-            if (!ctx.assistantMessage.summary) {
-              // TODO(v2): Temporary dual-write while migrating session messages to v2 events.
-              if (Flag.EXPERIMENTAL_EVENT_SYSTEM) {
-                yield* event.publish(SchemaSession.DurableEvent.Text.Ended, {
-                  assistantMessageID: ctx.assistantMessage.id,
-                  textID: value.id,
-                  sessionID: ctx.sessionID,
-                  text: ctx.currentText.text,
-                  timestamp: DateTime.makeUnsafe(Date.now())
-                });
-              }
-            }
-            {
-              const end = Date.now();
-              ctx.currentText.time = { start: ctx.currentText.time?.start ?? end, end };
-            }
-            if (value.providerMetadata) {
-              ctx.currentText.metadata = value.providerMetadata;
-            }
-            yield* session.updatePart(ctx.currentText);
-            ctx.currentText = void 0;
-            return;
-
-          case 'finish':
-            return;
-
-          default:
-            log.info('unhandled', { event: value.type, value });
-            return;
-        }
-      }, Effect.provide(Database.defaultLayer));
+        },
+        Effect.provideService(Database.Service, database)
+      );
 
       const cleanup = Effect.fn('SessionProcessor.cleanup')(function* () {
         if (ctx.currentText) {

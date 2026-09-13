@@ -1,5 +1,5 @@
-import { SchemaProvider } from '@/schema';
-import { Effect } from 'effect';
+import { SchemaAgent, SchemaProvider } from '@/schema';
+import { Context, Effect, Layer } from 'effect';
 import { InstanceContext } from '@/instance';
 import { AppFileSystem } from '@/file';
 import path from 'path';
@@ -11,6 +11,8 @@ import PROMPT_ANTHROPIC from './prompt/anthropic.md';
 import PROMPT_TRINITY from './prompt/trinity.md';
 import PROMPT_KIMI from './prompt/kimi.md';
 import PROMPT_DEFAULT from './prompt/default.md';
+import { Skill } from '@/skill';
+import { Permission } from '@/permission';
 
 const channelPromptMap = new Map<string, string>();
 
@@ -59,7 +61,7 @@ export const channelPrompt = Effect.fn(function* (channelType: string, channelId
     channelPromptMap.set(key, prompt);
   }
   return prompt;
-}, Effect.provide(AppFileSystem.defaultLayer));
+});
 
 export const globalPrompt = Effect.fn(function* () {
   const fs = yield* AppFileSystem.Service;
@@ -76,4 +78,60 @@ export const globalPrompt = Effect.fn(function* () {
     channelPromptMap.set(globalKey, prompt);
   }
   return prompt;
-}, Effect.provide(AppFileSystem.defaultLayer));
+});
+
+export interface Interface {
+  readonly environment: (model: SchemaProvider.Model) => Effect.Effect<string[]>;
+  readonly skills: (agent: SchemaAgent.Info) => Effect.Effect<string | undefined>;
+}
+
+export class Service extends Context.Service<Service, Interface>()('@openchat/SystemPrompt') {}
+
+export const layer = Layer.effect(
+  Service,
+  Effect.gen(function* () {
+    const skill = yield* Skill.Service;
+    const fs = yield* AppFileSystem.Service;
+
+    return Service.of({
+      environment: Effect.fn('SystemPrompt.environment')(
+        function* (model: SchemaProvider.Model) {
+          const directory = yield* InstanceContext.directory;
+          return [
+            [
+              `You are powered by the model named ${model.api.id}. The exact model ID is ${model.providerID}/${model.api.id}`,
+              `Here is some useful information about the environment you are running in:`,
+              `<env>`,
+              `  Working directory: ${directory}`,
+              `  Platform: ${process.platform}`,
+              `  Today's date: ${new Date().toDateString()}`,
+              `</env>`
+            ].join('\n')
+          ];
+        },
+        Effect.provideService(AppFileSystem.Service, fs)
+      ),
+
+      skills: Effect.fn('SystemPrompt.skills')(function* (agent: SchemaAgent.Info) {
+        if (Permission.disabled(['skill'], agent.permission).has('skill')) {
+          return;
+        }
+
+        const list = yield* skill.available(agent);
+
+        return [
+          'Skills provide specialized instructions and workflows for specific tasks.',
+          'Use the skill tool to load a skill when a task matches its description.',
+          // the agents seem to ingest the information about skills a bit better if we present a more verbose
+          // version of them here and a less verbose version in tool description, rather than vice versa.
+          Skill.fmt(list, { verbose: true })
+        ].join('\n');
+      })
+    });
+  })
+);
+
+export const defaultLayer = layer.pipe(
+  Layer.provide(Skill.defaultLayer),
+  Layer.provide(AppFileSystem.defaultLayer)
+);

@@ -10,6 +10,7 @@ import * as Discovery from './discovery';
 import { Flag } from '@/flag';
 import { getDirectory } from '@/instance/instance-context';
 import { Permission } from '@/permission';
+import { pathToFileURL } from 'url';
 
 const log = Log.create({ service: 'skill' });
 const CLAUDE_EXTERNAL_DIR = '.claude';
@@ -17,6 +18,35 @@ const AGENTS_EXTERNAL_DIR = '.agents';
 const EXTERNAL_SKILL_PATTERN = 'skills/**/SKILL.md';
 const OPENCHAT_SKILL_PATTERN = '{skill,skills}/**/SKILL.md';
 const SKILL_PATTERN = '**/SKILL.md';
+
+export const fmt = (list: SchemaSkill.Info[], opts: { verbose: boolean }) => {
+  const described = list.filter(skill => skill.description !== void 0);
+  if (described.length === 0) {
+    return 'No skills are currently available.';
+  }
+  if (opts.verbose) {
+    return [
+      '<available_skills>',
+      ...described
+        .toSorted((a, b) => a.name.localeCompare(b.name))
+        .flatMap(skill => [
+          '  <skill>',
+          `    <name>${skill.name}</name>`,
+          `    <description>${skill.description}</description>`,
+          `    <location>${pathToFileURL(skill.location).href}</location>`,
+          '  </skill>'
+        ]),
+      '</available_skills>'
+    ].join('\n');
+  }
+
+  return [
+    '## Available Skills',
+    ...described
+      .toSorted((a, b) => a.name.localeCompare(b.name))
+      .map(skill => `- **${skill.name}**: ${skill.description}`)
+  ].join('\n');
+};
 
 const isSkillFrontmatter = (data: unknown): data is { name: string; description?: string } => {
   return (
