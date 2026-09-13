@@ -4,6 +4,7 @@ import { Ruleset } from '@/schema/permission';
 import {
   AgentPartInput,
   FilePartInput,
+  FilePartSource,
   Part,
   PartID,
   SubtaskPartInput,
@@ -114,6 +115,47 @@ export const PromptInput = Schema.Struct({
   )
 });
 export type PromptInput = Schema.Schema.Type<typeof PromptInput>;
+
+export class LoopInput extends Schema.Class<LoopInput>('SessionPrompt.LoopInput')({
+  sessionID: SessionID
+}) {}
+
+export const ShellInput = Schema.Struct({
+  sessionID: SessionID,
+  messageID: Schema.optional(MessageID),
+  agent: Schema.String,
+  model: Schema.optional(ModelRef),
+  command: Schema.String
+});
+export type ShellInput = Schema.Schema.Type<typeof ShellInput>;
+
+export const CommandInput = Schema.Struct({
+  messageID: Schema.optional(MessageID),
+  sessionID: SessionID,
+  agent: Schema.optional(Schema.String),
+  model: Schema.optional(Schema.String),
+  arguments: Schema.String,
+  command: Schema.String,
+  variant: Schema.optional(Schema.String),
+  // Inlined (no identifier annotation) to keep the original SDK output — the
+  // PromptInput call site below references FilePartInput by ref via the
+  // Schema export in message-v2.ts.
+  parts: Schema.optional(
+    Schema.Array(
+      Schema.Union([
+        Schema.Struct({
+          id: Schema.optional(PartID),
+          type: Schema.Literal('file'),
+          mime: Schema.String,
+          filename: Schema.optional(Schema.String),
+          url: Schema.String,
+          source: Schema.optional(FilePartSource)
+        })
+      ]).annotate({ discriminator: 'type' })
+    )
+  )
+});
+export type CommandInput = Schema.Schema.Type<typeof CommandInput>;
 
 const options = {
   durable: {

@@ -1,5 +1,6 @@
 import { Schema } from 'effect';
 import { optionalOmitUndefined } from '@/schema/common';
+import { SessionID } from '@/schema/session/id';
 
 export const UnknownError = Schema.Struct({
   type: Schema.Literal('unknown'),
@@ -18,3 +19,7 @@ export const RetryError = Schema.Struct({
   identifier: 'session.next.retry_error'
 });
 export type RetryError = Schema.Schema.Type<typeof RetryError>;
+
+export class BusyError extends Schema.TaggedErrorClass<BusyError>()('SessionBusyError', {
+  sessionID: SessionID
+}) {}
