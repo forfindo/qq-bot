@@ -15,6 +15,7 @@ import * as MediaUtil from './media';
 import * as ShellUtil from './shell';
 import * as Slug from './slug';
 import * as JsonSchemaTool from './json-schema';
+import * as Token from './token';
 
 export * from './iife';
 export * from './timeout';
@@ -39,5 +40,6 @@ export {
   JsonSchemaTool,
   ProcessUtil,
   MediaUtil,
-  ShellUtil
+  ShellUtil,
+  Token
 };

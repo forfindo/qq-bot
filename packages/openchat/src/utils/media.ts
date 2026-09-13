@@ -5,6 +5,10 @@ export function isPdfAttachment(mime: string) {
   return mime === 'application/pdf';
 }
 
+export function isMedia(mime: string) {
+  return mime.startsWith('image/') || isPdfAttachment(mime);
+}
+
 export function isImageAttachment(mime: string) {
   return mime.startsWith('image/') && mime !== 'image/svg+xml' && mime !== 'image/vnd.fastbidsheet';
 }

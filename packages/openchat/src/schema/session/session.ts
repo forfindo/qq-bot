@@ -193,6 +193,12 @@ const events = {
     schema: Schema.Struct({
       sessionID: SessionID
     })
+  }),
+  Compacted: define({
+    type: 'session.compacted',
+    schema: Schema.Struct({
+      sessionID: SessionID
+    })
   })
 };
 
@@ -238,6 +244,7 @@ export const Events = {
     events.PartRemoved,
     events.Status,
     events.Idle,
+    events.Compacted,
     PartDelta,
     Diff,
     Error

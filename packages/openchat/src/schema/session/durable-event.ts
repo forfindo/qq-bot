@@ -405,10 +405,8 @@ export namespace Compaction {
     ...options,
     schema: Schema.Struct({
       ...Base,
-      messageID: MessageID,
-      reason: Started.data.fields.reason,
       text: Schema.String,
-      recent: Schema.String
+      include: Schema.String.pipe(Schema.optional)
     })
   });
   export type Ended = typeof Ended.Type;

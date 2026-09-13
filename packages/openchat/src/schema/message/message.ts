@@ -51,10 +51,6 @@ export const Assistant = Schema.Struct({
    */
   mode: Schema.String,
   agent: Schema.String,
-  path: Schema.Struct({
-    cwd: Schema.String,
-    root: Schema.String
-  }),
   summary: Schema.optional(Schema.Boolean),
   cost: Schema.Finite,
   tokens: Schema.Struct({
