@@ -127,7 +127,7 @@ export const Info = Schema.Struct({
   shell: Schema.optional(Schema.String).annotate({
     description: 'Default shell to use for terminal and bash tool'
   }),
-  command: Schema.optional(Schema.Record(Schema.String, SchemaCommand.Info)).annotate({
+  command: Schema.optional(Schema.Record(Schema.String, SchemaCommand.ConfigInfo)).annotate({
     description: 'Command configuration, see https://opencode.ai/docs/commands'
   }),
   compaction: Schema.optional(

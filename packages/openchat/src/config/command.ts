@@ -7,10 +7,10 @@ import { configEntryNameFromPath } from '@/config/entry-name';
 
 const log = Log.create({ service: 'config' });
 
-const decodeInfo = Schema.decodeUnknownExit(SchemaCommand.Info);
+const decodeInfo = Schema.decodeUnknownExit(SchemaCommand.ConfigInfo);
 
 export const load = Effect.fn('ConfigCommand.load')(function* (dir: string) {
-  const result: Record<string, SchemaCommand.Info> = {};
+  const result: Record<string, SchemaCommand.ConfigInfo> = {};
   const globResult = yield* Effect.promise(() =>
     Glob.scan('{command,commands}/**/*.md', {
       cwd: dir,
