@@ -8,6 +8,7 @@ import { pathToFileURL } from 'url';
 import { Config } from '@/config';
 import { Agent } from '@/agent';
 import * as Truncate from '@/tool/truncate';
+import { PlanExitTool } from '@/tool/tools/plan';
 import { QuestionTool } from '@/tool/tools/question';
 import { TodoWriteTool } from '@/tool/tools/todo';
 import { WebFetchTool } from '@/tool/tools/webfetch';
@@ -157,6 +158,7 @@ export const layer = Layer.effect(
     const greptool = yield* GrepTool;
     const patchtool = yield* ApplyPatchTool;
     const skilltool = yield* SkillTool;
+    const plan = yield* PlanExitTool;
     const agent = yield* Agent.Service;
 
     const state = yield* ServiceState.make<State>(
@@ -261,7 +263,8 @@ export const layer = Layer.effect(
           search: init(websearch),
           skill: init(skilltool),
           patch: init(patchtool),
-          question: init(question)
+          question: init(question),
+          plan: init(plan)
         });
 
         return {
@@ -280,7 +283,8 @@ export const layer = Layer.effect(
             tool.todo,
             tool.search,
             tool.skill,
-            tool.patch
+            tool.patch,
+            ...(Flag.EXPERIMENTAL_PLAN_MODE ? [tool.plan] : [])
           ],
           task: tool.task,
           read: tool.read

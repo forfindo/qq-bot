@@ -20,7 +20,7 @@ const Base = {
 
 const PromptFields = Schema.Struct({
   ...Base,
-  messageID: SessionID,
+  messageID: MessageID,
   prompt: Prompt,
   delivery: Delivery
 });
