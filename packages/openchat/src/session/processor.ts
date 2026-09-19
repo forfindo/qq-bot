@@ -825,5 +825,6 @@ export const defaultLayer = layer.pipe(
   Layer.provide(Image.defaultLayer),
   Layer.provide(Event.defaultLayer),
   Layer.provide(Agent.defaultLayer),
-  Layer.provide(SessionStatus.defaultLayer)
+  Layer.provide(SessionStatus.defaultLayer),
+  Layer.provide(Database.defaultLayer)
 );

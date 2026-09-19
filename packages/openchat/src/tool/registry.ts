@@ -36,6 +36,7 @@ import { BackgroundJob } from '@/background';
 import { Question } from '@/question';
 import { Instruction, Session, Todo } from '@/session';
 import { Skill } from '@/skill';
+import { Provider } from '@/provider';
 
 export const webSearchEnabled = (
   providerID: SchemaProvider.ProviderID,
@@ -395,5 +396,6 @@ export const defaultLayer = layer.pipe(
   Layer.provide(Database.defaultLayer),
   Layer.provide(BackgroundJob.layer),
   Layer.provide(Ripgrep.defaultLayer),
-  Layer.provide(Instruction.defaultLayer)
+  Layer.provide(Instruction.defaultLayer),
+  Layer.provide(Provider.defaultLayer)
 );

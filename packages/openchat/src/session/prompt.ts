@@ -56,6 +56,7 @@ import MAX_STEPS from './prompt/max-steps.md';
 import { type Tool as AITool, tool, jsonSchema, type ToolExecutionOptions, asSchema } from 'ai';
 import type { JSONSchema7 } from '@ai-sdk/provider';
 import { ShellToolID } from '@/tool/shell/id';
+import { CrossSpawnSpawner } from '@/process';
 
 const log = Log.create({ service: 'session.prompt' });
 
@@ -1837,4 +1838,31 @@ export const layer = Layer.effect(
       resolvePromptParts
     });
   })
+);
+
+export const defaultLayer = layer.pipe(
+  Layer.provide(SessionStatus.defaultLayer),
+  Layer.provide(Session.defaultLayer),
+  Layer.provide(Provider.defaultLayer),
+  Layer.provide(SessionProcessor.defaultLayer),
+  Layer.provide(SessionCompaction.defaultLayer),
+  Layer.provide(Command.defaultLayer),
+  Layer.provide(Config.defaultLayer),
+  Layer.provide(Permission.defaultLayer),
+  Layer.provide(AppFileSystem.defaultLayer),
+  Layer.provide(MCP.defaultLayer),
+  Layer.provide(ToolRegistry.defaultLayer),
+  Layer.provide(Truncate.defaultLayer),
+  Layer.provide(Image.defaultLayer),
+  Layer.provide(Instruction.defaultLayer),
+  Layer.provide(SessionRunState.defaultLayer),
+  Layer.provide(
+    Layer.mergeAll(
+      Agent.defaultLayer,
+      SystemPrompt.defaultLayer,
+      LLM.defaultLayer,
+      CrossSpawnSpawner.defaultLayer,
+      Event.defaultLayer
+    )
+  )
 );

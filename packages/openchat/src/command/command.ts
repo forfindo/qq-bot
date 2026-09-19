@@ -123,3 +123,9 @@ export const layer = Layer.effect(
     return Service.of({ get, list });
   })
 );
+
+export const defaultLayer = layer.pipe(
+  Layer.provide(Config.defaultLayer),
+  Layer.provide(MCP.defaultLayer),
+  Layer.provide(Skill.defaultLayer)
+);

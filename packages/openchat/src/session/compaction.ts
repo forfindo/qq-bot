@@ -607,3 +607,12 @@ export const layer = Layer.effect(
     });
   })
 );
+
+export const defaultLayer = layer.pipe(
+  Layer.provide(Event.defaultLayer),
+  Layer.provide(Config.defaultLayer),
+  Layer.provide(Session.defaultLayer),
+  Layer.provide(Agent.defaultLayer),
+  Layer.provide(SessionProcessor.defaultLayer),
+  Layer.provide(Provider.defaultLayer)
+);
