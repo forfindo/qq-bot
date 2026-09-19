@@ -55,7 +55,6 @@ export const layer = Layer.effect(
             doom_loop: 'ask',
             external_directory: readonlyExternalDirectory,
             question: 'deny',
-            plan_enter: 'deny',
             plan_exit: 'deny',
             // mirrors github.com/github/gitignore Node.gitignore pattern for .env files
             read: {
@@ -76,8 +75,7 @@ export const layer = Layer.effect(
               permission: Permission.merge(
                 defaults,
                 Permission.fromConfig({
-                  question: 'allow',
-                  plan_enter: 'allow'
+                  question: 'allow'
                 }),
                 user
               ),

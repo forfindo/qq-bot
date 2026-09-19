@@ -3,6 +3,7 @@ import { LocalContext } from '@/utils';
 import { Context, Effect, Fiber } from 'effect';
 import path from 'path';
 import { InstanceRef } from '@/instance/refrences';
+import { MessageSender } from '@/session';
 
 export interface InstanceContext {
   readonly uid: string;
@@ -49,6 +50,15 @@ export const uid = Effect.map(InstanceContext, ctx => ctx.uid);
 
 export const directory = Effect.gen(function* () {
   return yield* getDirectory();
+});
+
+export const workspace = Effect.gen(function* () {
+  const sender = yield* MessageSender.Service;
+  const directory = yield* getDirectory();
+  return path.resolve(
+    directory,
+    `${sender.channelType}-${sender.channelInfo?.channelID ?? sender.source?.uid}`
+  );
 });
 
 export const getDirectory = Effect.fnUntraced(function* (uid?: string) {

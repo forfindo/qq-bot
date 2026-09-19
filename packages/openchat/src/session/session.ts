@@ -13,6 +13,7 @@ import * as Message from './message';
 import { InstanceContext } from '@/instance';
 import type { LanguageModelUsage } from 'ai';
 import Decimal from 'decimal.js';
+import path from 'path';
 
 export type NotFound = NotFoundError;
 
@@ -40,6 +41,17 @@ type SessionRow = typeof SessionTable.$inferSelect;
 const parentTitlePrefix = 'New session - ';
 const childTitlePrefix = 'Child session - ';
 const EmptyTokens = { input: 0, output: 0, reasoning: 0, cache: { read: 0, write: 0 } };
+
+export function isDefaultTitle(title: string) {
+  return new RegExp(
+    `^(${parentTitlePrefix}|${childTitlePrefix})\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$`
+  ).test(title);
+}
+
+export function plan(input: { slug: string; time: { created: number } }, instanceDir: string) {
+  const base = path.join(instanceDir, '.opencode', 'plans');
+  return path.join(base, [input.time.created, input.slug].join('-') + '.md');
+}
 
 export const getUsage = (input: {
   model: SchemaProvider.Model;

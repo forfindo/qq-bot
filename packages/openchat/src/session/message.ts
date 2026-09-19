@@ -495,3 +495,148 @@ export const toModelMessagesEffect = Effect.fnUntraced(function* (
     )
   );
 });
+
+export const stream = Effect.fnUntraced(function* (sessionID: SchemaSession.SessionID) {
+  const size = 50;
+  const result = [] as SchemaMessage.WithParts[];
+  let before: string | undefined;
+  while (true) {
+    const next = yield* page({ sessionID, limit: size, before }).pipe(
+      Effect.provide(Database.defaultLayer),
+      Effect.catchIf(
+        (e): e is NotFoundError => NotFoundError.isInstance(e),
+        () =>
+          Effect.succeed({ items: [] as SchemaMessage.WithParts[], more: false, cursor: void 0 })
+      )
+    );
+    if (next.items.length === 0) {
+      break;
+    }
+    for (let i = next.items.length - 1; i >= 0; i--) {
+      const item = next.items[i];
+      if (item) {
+        result.push(item);
+      }
+    }
+    if (!next.more || !next.cursor) {
+      break;
+    }
+    before = next.cursor;
+  }
+  return result;
+});
+
+export const filterCompacted = (msgs: Iterable<SchemaMessage.WithParts>) => {
+  const result = [] as SchemaMessage.WithParts[];
+  const completed = new Set<string>();
+  let retain: SchemaMessage.MessageID | undefined;
+  for (const msg of msgs) {
+    result.push(msg);
+    if (retain) {
+      if (msg.info.id === retain) {
+        break;
+      }
+      continue;
+    }
+    if (msg.info.role === 'user' && completed.has(msg.info.id)) {
+      const part = msg.parts.find(
+        (item): item is SchemaMessage.CompactionPart => item.type === 'compaction'
+      );
+      if (!part) {
+        continue;
+      }
+      if (!part.tail_start_id) {
+        break;
+      }
+      retain = part.tail_start_id;
+      if (msg.info.id === retain) {
+        break;
+      }
+      continue;
+    }
+    if (
+      msg.info.role === 'user' &&
+      completed.has(msg.info.id) &&
+      msg.parts.some(part => part.type === 'compaction')
+    ) {
+      break;
+    }
+    if (msg.info.role === 'assistant' && msg.info.summary && msg.info.finish && !msg.info.error) {
+      completed.add(msg.info.parentID);
+    }
+  }
+  result.reverse();
+  const compactionIndex = result.findLastIndex(
+    msg =>
+      msg.info.role === 'user' &&
+      msg.parts.some(
+        (item): item is SchemaMessage.CompactionPart =>
+          item.type === 'compaction' && item.tail_start_id !== void 0
+      )
+  );
+  const compaction = result[compactionIndex];
+  const part = compaction?.parts.find(
+    (item): item is SchemaMessage.CompactionPart =>
+      item.type === 'compaction' && item.tail_start_id !== void 0
+  );
+  const summaryIndex = compaction
+    ? result.findIndex(
+        (msg, index) =>
+          index > compactionIndex &&
+          msg.info.role === 'assistant' &&
+          msg.info.summary &&
+          msg.info.parentID === compaction.info.id
+      )
+    : -1;
+  const tailIndex = part?.tail_start_id
+    ? result.findIndex(msg => msg.info.id === part.tail_start_id)
+    : -1;
+  if (tailIndex >= 0 && tailIndex < compactionIndex && summaryIndex > compactionIndex) {
+    return [
+      ...result.slice(compactionIndex, summaryIndex + 1),
+      ...result.slice(tailIndex, compactionIndex),
+      ...result.slice(summaryIndex + 1)
+    ];
+  }
+  return result;
+};
+
+export const filterCompactedEffect = Effect.fnUntraced(function* (
+  sessionID: SchemaSession.SessionID
+) {
+  return filterCompacted(yield* stream(sessionID));
+});
+
+// filterCompacted reorders messages for model consumption
+// ([compaction-user, summary, ...retained tail..., continue-user]), so array
+// position is not chronological. Derive each binding by max id (MessageID
+// is monotonic via MessageID.ascending) so a pre-compaction overflowing tail
+// assistant doesn't get mistaken for the most recent turn. tasks are
+// compaction/subtask parts attached to user messages newer than the latest
+// finished assistant — i.e. unprocessed work.
+export function latest(msgs: SchemaMessage.WithParts[]) {
+  let user: SchemaMessage.User | undefined;
+  let assistant: SchemaMessage.Assistant | undefined;
+  let finished: SchemaMessage.Assistant | undefined;
+  for (const msg of msgs) {
+    const info = msg.info;
+    if (info.role === 'user' && (!user || info.id > user.id)) {
+      user = info;
+    }
+    if (info.role === 'assistant' && (!assistant || info.id > assistant.id)) {
+      assistant = info;
+    }
+    if (info.role === 'assistant' && info.finish && (!finished || info.id > finished.id)) {
+      finished = info;
+    }
+  }
+  const tasks = msgs.flatMap(m =>
+    finished && m.info.id <= finished.id
+      ? []
+      : m.parts.filter(
+          (p): p is SchemaMessage.CompactionPart | SchemaMessage.SubtaskPart =>
+            p.type === 'compaction' || p.type === 'subtask'
+        )
+  );
+  return { user, assistant, finished, tasks };
+}

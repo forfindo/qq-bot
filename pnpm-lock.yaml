@@ -214,6 +214,9 @@ importers:
       turndown:
         specifier: 7.2.2
         version: 7.2.2
+      ulid:
+        specifier: ^3.0.2
+        version: 3.0.2
       venice-ai-sdk-provider:
         specifier: 2.0.1
         version: 2.0.1(ai@6.0.168(zod@4.1.8))(zod@4.1.8)
@@ -3558,6 +3561,10 @@ packages:
   typescript@6.0.3:
     resolution: {integrity: sha512-y2TvuxSZPDyQakkFRPZHKFm+KKVqIisdg9/CZwm9ftvKXLP8NRWj38/ODjNbr43SsoXqNuAisEf1GdCxqWcdBw==}
     engines: {node: '>=14.17'}
+    hasBin: true
+
+  ulid@3.0.2:
+    resolution: {integrity: sha512-yu26mwteFYzBAot7KVMqFGCVpsF6g8wXfJzQUHvu1no3+rRRSFcSV2nKeYvNPLD2J4b08jYBDhHUjeH0ygIl9w==}
     hasBin: true
 
   undici-types@7.18.2:
@@ -7291,6 +7298,8 @@ snapshots:
       - supports-color
 
   typescript@6.0.3: {}
+
+  ulid@3.0.2: {}
 
   undici-types@7.18.2: {}
 

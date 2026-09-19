@@ -3,6 +3,17 @@ import { Effect } from 'effect';
 import matter from 'gray-matter';
 import { FrontmatterError } from '@/config/error';
 
+export const FILE_REGEX = /(?<![\w`])@(\.?[^\s`,.]*(?:\.[^\s`,.]+)*)/g;
+export const SHELL_REGEX = /!`([^`]+)`/g;
+
+export function files(template: string) {
+  return Array.from(template.matchAll(FILE_REGEX));
+}
+
+export function shell(template: string) {
+  return Array.from(template.matchAll(SHELL_REGEX));
+}
+
 // other coding agents like claude code allow invalid yaml in their
 // frontmatter, we need to fallback to a more permissive parser for those cases
 export function fallbackSanitization(content: string): string {

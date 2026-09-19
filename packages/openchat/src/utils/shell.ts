@@ -15,6 +15,8 @@ const META: Record<string, { deny?: boolean; login?: boolean; posix?: boolean; p
   sh: { login: true, posix: true },
   zsh: { login: true, posix: true }
 };
+
+const defaultPreferred = lazy(() => select(process.env.SHELL));
 const defaultAcceptable = lazy(() => select(process.env.SHELL, { acceptable: true }));
 
 export const name = (file: string) => {
@@ -123,6 +125,48 @@ const select = (file: string | undefined, opts?: { acceptable?: boolean }) => {
   return fallback();
 };
 
+export const args = (file: string, command: string, cwd: string) => {
+  const n = name(file);
+  if (n === 'nu' || n === 'fish') {
+    return ['-c', command];
+  }
+  if (n === 'zsh') {
+    return [
+      '-l',
+      '-c',
+      `
+        [[ -f ~/.zshenv ]] && source ~/.zshenv >/dev/null 2>&1 || true
+        [[ -f "\${ZDOTDIR:-$HOME}/.zshrc" ]] && source "\${ZDOTDIR:-$HOME}/.zshrc" >/dev/null 2>&1 || true
+        cd -- "$1"
+        eval ${JSON.stringify(command)}
+      `,
+      'opencode',
+      cwd
+    ];
+  }
+  if (n === 'bash') {
+    return [
+      '-l',
+      '-c',
+      `
+        shopt -s expand_aliases
+        [[ -f ~/.bashrc ]] && source ~/.bashrc >/dev/null 2>&1 || true
+        cd -- "$1"
+        eval ${JSON.stringify(command)}
+      `,
+      'opencode',
+      cwd
+    ];
+  }
+  if (n === 'cmd') {
+    return ['/c', command];
+  }
+  if (ps(file)) {
+    return ['-NoProfile', '-Command', command];
+  }
+  return ['-c', command];
+};
+
 export const acceptable = (configShell?: string) => {
   if (configShell) {
     return select(configShell, { acceptable: true });
@@ -130,3 +174,11 @@ export const acceptable = (configShell?: string) => {
   return defaultAcceptable();
 };
 acceptable.reset = () => defaultAcceptable.reset();
+
+export const preferred = (configShell?: string) => {
+  if (configShell) {
+    return select(configShell);
+  }
+  return defaultPreferred();
+};
+preferred.reset = () => defaultPreferred.reset();

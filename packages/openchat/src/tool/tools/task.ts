@@ -74,9 +74,7 @@ export const Parameters = Schema.Struct({
 
 export interface TaskPromptOps {
   cancel(sessionID: SchemaSession.SessionID): Effect.Effect<void>;
-
   resolvePromptParts(template: string): Effect.Effect<SchemaSession.PromptInput['parts']>;
-
   prompt(input: SchemaSession.PromptInput): Effect.Effect<SchemaMessage.WithParts>;
 }
 

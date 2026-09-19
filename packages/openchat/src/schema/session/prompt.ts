@@ -1,40 +1,34 @@
 import { Schema } from 'effect';
 import { optionalOmitUndefined, withStatics } from '@/schema/common';
 
-export const Source = Schema.Struct({
+export class Source extends Schema.Class<Source>('Prompt.Source')({
   start: Schema.Finite,
   end: Schema.Finite,
   text: Schema.String
-}).annotate({ identifier: 'Prompt.Source' });
-export type Source = Schema.Schema.Type<typeof Source>;
+}) {}
 
-export const FileAttachment = Schema.Struct({
+export class FileAttachment extends Schema.Class<FileAttachment>('Prompt.FileAttachment')({
   uri: Schema.String,
   mime: Schema.String,
-  name: Schema.String.pipe(optionalOmitUndefined),
-  description: Schema.String.pipe(optionalOmitUndefined),
-  source: Source.pipe(optionalOmitUndefined)
-})
-  .annotate({ identifier: 'Prompt.FileAttachment' })
-  .pipe(
-    withStatics(schema => ({
-      create: (input: FileAttachment) =>
-        schema.make({
-          uri: input.uri,
-          mime: input.mime,
-          name: input.name,
-          description: input.description,
-          source: input.source
-        })
-    }))
-  );
-export type FileAttachment = Schema.Schema.Type<typeof FileAttachment>;
+  name: Schema.String.pipe(Schema.optional),
+  description: Schema.String.pipe(Schema.optional),
+  source: Source.pipe(Schema.optional)
+}) {
+  static create(input: FileAttachment) {
+    return new FileAttachment({
+      uri: input.uri,
+      mime: input.mime,
+      name: input.name,
+      description: input.description,
+      source: input.source
+    });
+  }
+}
 
-export const AgentAttachment = Schema.Struct({
+export class AgentAttachment extends Schema.Class<AgentAttachment>('Prompt.AgentAttachment')({
   name: Schema.String,
-  source: Source.pipe(optionalOmitUndefined)
-}).annotate({ identifier: 'Prompt.AgentAttachment' });
-export type AgentAttachment = Schema.Schema.Type<typeof AgentAttachment>;
+  source: Source.pipe(Schema.optional)
+}) {}
 
 export const Prompt = Schema.Struct({
   text: Schema.String,

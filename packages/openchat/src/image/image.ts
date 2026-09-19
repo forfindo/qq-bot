@@ -14,7 +14,7 @@ const log = Log.create();
 export interface Interface {
   readonly normalize: (
     input: SchemaMessage.FilePart
-  ) => Effect.Effect<SchemaMessage.FilePart, Error>;
+  ) => Effect.Effect<SchemaMessage.FilePart, SchemaImage.Error>;
 }
 
 export class Service extends Context.Service<Service, Interface>()('@openchat/Image') {}
