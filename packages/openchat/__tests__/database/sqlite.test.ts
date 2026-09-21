@@ -2,7 +2,8 @@ import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 import { Effect } from 'effect';
 import { DatabaseSync } from 'node:sqlite';
 import type { SqlClient as SqlClientService } from 'effect/unstable/sql/SqlClient';
-import { layer } from '@/database/sqlite.node';
+import { node as makeSqliteNode } from '@/database/sqlite.node';
+import { LayerNode } from '@/runtime';
 import { makeWithDefaults } from '@/database/effect-drizzle-sqlite/effect-sqlite';
 import { describe } from 'vitest';
 import { mkdtemp, rm } from 'node:fs/promises';
@@ -18,7 +19,10 @@ const users = sqliteTable('users', {
 
 const run = <A, E>(effect: Effect.Effect<A, E, SqlClientService>) =>
   Effect.runPromise(
-    effect.pipe(Effect.provide(layer({ filename: ':memory:', disableWAL: true })), Effect.scoped)
+    effect.pipe(
+      Effect.provide(LayerNode.compile(makeSqliteNode({ filename: ':memory:', disableWAL: true }))),
+      Effect.scoped
+    )
   );
 
 const makeDb = Effect.gen(function* () {
@@ -127,7 +131,10 @@ describe('sqlite node', () => {
           expect(error.reason.cause instanceof Error ? error.reason.cause.message : '').toContain(
             'database is locked'
           );
-        }).pipe(Effect.provide(layer({ filename, disableWAL: true })), Effect.scoped)
+        }).pipe(
+          Effect.provide(LayerNode.compile(makeSqliteNode({ filename, disableWAL: true }))),
+          Effect.scoped
+        )
       );
     } finally {
       if (holder.isTransaction) {

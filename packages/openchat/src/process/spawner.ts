@@ -13,8 +13,9 @@ import { PlatformError, systemError, type SystemErrorTag } from 'effect/Platform
 import NodeChildProcess from 'node:child_process';
 import launch from 'cross-spawn';
 import { PassThrough } from 'node:stream';
-import { NodeFileSystem, NodeSink, NodeStream } from '@effect/platform-node';
+import { NodeSink, NodeStream } from '@effect/platform-node';
 import path from 'path';
+import { LayerNode, Nodes } from '@/runtime';
 
 type ExitSignal = Deferred.Deferred<readonly [code: number | null, signal: NodeJS.Signals | null]>;
 
@@ -542,6 +543,10 @@ export const make = Effect.gen(function* () {
   return makeSpawner(spawnCommand);
 });
 
-export const layer = Layer.effect(ChildProcessSpawner, make);
+const layer = Layer.effect(ChildProcessSpawner, make);
 
-export const defaultLayer = layer.pipe(Layer.provide(NodeFileSystem.layer));
+export const node = LayerNode.make({
+  service: ChildProcessSpawner,
+  layer,
+  deps: [Nodes.filesystem]
+});

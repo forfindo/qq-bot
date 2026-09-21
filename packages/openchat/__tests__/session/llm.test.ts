@@ -5,6 +5,7 @@ import { SchemaMessage, SchemaProvider, SchemaSession } from '@/schema';
 import { Agent } from '@/agent';
 import { Provider } from '@/provider';
 import { InstanceRef } from '@/instance/refrences';
+import { LayerNode } from '@/runtime';
 
 describe('llm service', () => {
   it('normal', async () => {
@@ -12,7 +13,6 @@ describe('llm service', () => {
       const llm = yield* LLM.Service;
       const agent = yield* Agent.Service;
       const provider = yield* Provider.Service;
-      const sender = yield* MessageSender.Service;
 
       const providerId = SchemaProvider.ProviderID.make('deepseek');
       const modelId = SchemaProvider.ModelID.make('deepseek-v4-pro');
@@ -39,7 +39,7 @@ describe('llm service', () => {
         messages: [
           {
             role: 'user',
-            content: MessageSender.withSenderInfo('谁加入了群聊？加入了哪个群聊？', sender)
+            content: yield* MessageSender.withSenderInfo('谁加入了群聊？加入了哪个群聊？')
           }
         ],
         tools: {}
@@ -57,9 +57,7 @@ describe('llm service', () => {
       });
       console.log(thinking, '\n', text);
     }).pipe(
-      Effect.provide(LLM.defaultLayer),
-      Effect.provide(Agent.defaultLayer),
-      Effect.provide(Provider.defaultLayer),
+      Effect.provide(LayerNode.compile(LayerNode.group([LLM.node, Agent.node, Provider.node]))),
       Effect.provideService(MessageSender.Ref, {
         type: 'system',
         eventType: '加群通知',

@@ -22,6 +22,7 @@ import { isOverflow } from '@/session/overflow';
 import * as SessionRetry from './retry';
 import * as Message from '@/session/message';
 import { Database } from '@/database';
+import { LayerNode } from '@/runtime';
 
 const log = Log.create({ service: 'session.processor' });
 const DOOM_LOOP_THRESHOLD = 3;
@@ -74,7 +75,7 @@ export interface Interface {
 
 export class Service extends Context.Service<Service, Interface>()('@openchat/SessionProcessor') {}
 
-export const layer = Layer.effect(
+const layer = Layer.effect(
   Service,
   Effect.gen(function* () {
     const session = yield* Session.Service;
@@ -817,14 +818,18 @@ export const layer = Layer.effect(
   })
 );
 
-export const defaultLayer = layer.pipe(
-  Layer.provide(Session.defaultLayer),
-  Layer.provide(Config.defaultLayer),
-  Layer.provide(LLM.defaultLayer),
-  Layer.provide(Permission.defaultLayer),
-  Layer.provide(Image.defaultLayer),
-  Layer.provide(Event.defaultLayer),
-  Layer.provide(Agent.defaultLayer),
-  Layer.provide(SessionStatus.defaultLayer),
-  Layer.provide(Database.defaultLayer)
-);
+export const node = LayerNode.make({
+  service: Service,
+  layer,
+  deps: [
+    Session.node,
+    Config.node,
+    LLM.node,
+    Permission.node,
+    Image.node,
+    Event.node,
+    Agent.node,
+    SessionStatus.node,
+    Database.node
+  ]
+});

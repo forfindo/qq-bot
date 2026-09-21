@@ -1,12 +1,12 @@
 import path from 'path';
 import npa from 'npm-package-arg';
 import { Effect, Context, Layer, Option } from 'effect';
-import { NodeFileSystem } from '@effect/platform-node';
 import { AppFileSystem } from '@/file';
 import { Global, Flock, iife } from '@/utils';
 import { makeRuntime } from '@/runtime/runtime';
 import { SchemaNpm } from '@/schema';
 import { load } from '@/npm/npm-config';
+import { LayerNode } from '@/runtime';
 
 const illegal =
   process.platform === 'win32' ? new Set(['<', '>', ':', '"', '|', '?', '*']) : void 0;
@@ -51,7 +51,7 @@ export interface Interface {
 
 export class Service extends Context.Service<Service, Interface>()('@openchat/Npm') {}
 
-export const layer = Layer.effect(
+const layer = Layer.effect(
   Service,
   Effect.gen(function* () {
     const afs = yield* AppFileSystem.Service;
@@ -185,12 +185,13 @@ export const layer = Layer.effect(
   })
 );
 
-export const defaultLayer = layer.pipe(
-  Layer.provide(AppFileSystem.layer),
-  Layer.provide(NodeFileSystem.layer)
-);
+export const node = LayerNode.make({
+  service: Service,
+  layer,
+  deps: [AppFileSystem.node]
+});
 
-const { runPromise } = makeRuntime(Service, defaultLayer);
+const { runPromise } = makeRuntime(Service, LayerNode.compile(node));
 
 export async function add(...args: Parameters<Interface['add']>) {
   const entry = await runPromise(svc => svc.add(...args));

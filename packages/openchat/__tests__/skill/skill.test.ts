@@ -2,6 +2,7 @@ import { describe, expect } from 'vitest';
 import { Effect } from 'effect';
 import { Skill } from '@/skill';
 import { InstanceRef } from '@/instance/refrences';
+import { LayerNode } from '@/runtime';
 
 describe('skill service', () => {
   it('all', async () => {
@@ -14,7 +15,7 @@ describe('skill service', () => {
         owner: '3530766280',
         name: '派蒙'
       }),
-      Effect.provide(Skill.defaultLayer),
+      Effect.provide(LayerNode.compile(Skill.node)),
       Effect.runPromise
     );
 

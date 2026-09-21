@@ -1,10 +1,16 @@
 import { Effect } from 'effect';
 import { Config } from '@/config';
 import { InstanceContext } from '@/instance';
+import { LayerNode } from '@/runtime';
 import { expect } from 'vitest';
+import { setEnv } from '@/flag';
 
 describe('config service', () => {
   it('get', async () => {
+    setEnv({
+      API_KEY: 'sk-1234',
+      CONFIG_CONTENT: '{"instructions":["你是凑企鹅！你是凑企鹅！你是凑企鹅！！！"]}'
+    });
     const cfg = await InstanceContext.Instance.restore(
       {
         uid: '3530766280',
@@ -15,14 +21,14 @@ describe('config service', () => {
         return await Effect.gen(function* () {
           const svc = yield* Config.Service;
           return yield* svc.get();
-        }).pipe(Effect.provide(Config.defaultLayer), Effect.runPromise);
+        }).pipe(Effect.provide(LayerNode.compile(Config.node)), Effect.runPromise);
       }
     );
     expect(cfg).toMatchObject({
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       instructions: expect.arrayContaining(['你是凑企鹅！你是凑企鹅！你是凑企鹅！！！'])
     });
-    expect(cfg.provider?.deepseek).toMatchObject({
+    expect(cfg.provider?.test).toMatchObject({
       options: {
         apiKey: 'sk-1234'
       }

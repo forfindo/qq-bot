@@ -4,7 +4,7 @@ import { Config } from '@/config';
 import { Skill } from '@/skill';
 import { Provider } from '@/provider';
 import { ServiceState } from '@/instance';
-import { Truncate } from '@/tool';
+import * as Truncate from '@/tool/truncate';
 import path from 'path';
 import { Global } from '@/utils';
 import { Permission } from '@/permission';
@@ -14,6 +14,7 @@ import PROMPT_COMPACTION from './prompt/compaction.md';
 import PROMPT_TITLE from './prompt/title.md';
 import PROMPT_SUMMARY from './prompt/summary.md';
 import { mergeDeep, pipe, values, sortBy } from 'remeda';
+import { LayerNode } from '@/runtime';
 
 interface State {
   agents: Record<string, SchemaAgent.Info>;
@@ -28,7 +29,7 @@ export interface Interface {
 
 export class Service extends Context.Service<Service, Interface>()('@openchat/Agent') {}
 
-export const layer = Layer.effect(
+const layer = Layer.effect(
   Service,
   Effect.gen(function* () {
     const config = yield* Config.Service;
@@ -307,8 +308,8 @@ export const layer = Layer.effect(
   })
 );
 
-export const defaultLayer = layer.pipe(
-  Layer.provide(Config.defaultLayer),
-  Layer.provide(Skill.defaultLayer),
-  Layer.provide(AppFileSystem.defaultLayer)
-);
+export const node = LayerNode.make({
+  service: Service,
+  layer,
+  deps: [Config.node, Skill.node, AppFileSystem.node]
+});

@@ -3,7 +3,7 @@ import { LocalContext } from '@/utils';
 import { Context, Effect, Fiber } from 'effect';
 import path from 'path';
 import { InstanceRef } from '@/instance/refrences';
-import { MessageSender } from '@/session';
+import * as MessageSender from '@/session/message-sender';
 
 export interface InstanceContext {
   readonly uid: string;

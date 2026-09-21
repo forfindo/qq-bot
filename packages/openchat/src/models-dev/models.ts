@@ -1,11 +1,12 @@
 import { Context, Duration, Effect, Layer, Option } from 'effect';
 import { SchemaModels } from '@/schema';
 import { AppFileSystem } from '@/file';
-import { HttpClient, HttpClientRequest, FetchHttpClient } from 'effect/unstable/http';
+import { HttpClient, HttpClientRequest } from 'effect/unstable/http';
 import path from 'path';
 import { Flag } from '@/flag';
 import { Flock, Global, Hash, Log, withTransientReadRetry } from '@/utils';
 import { InstallationVersion } from '@/installation/version';
+import { LayerNode, Nodes } from '@/runtime';
 
 const log = Log.create({ service: 'modelsDev' });
 
@@ -16,7 +17,7 @@ export interface Interface {
 
 export class Service extends Context.Service<Service, Interface>()('@openchat/ModelsDev') {}
 
-export const layer = Layer.effect(
+const layer = Layer.effect(
   Service,
   Effect.gen(function* () {
     const fs = yield* AppFileSystem.Service;
@@ -118,7 +119,8 @@ export const layer = Layer.effect(
   })
 );
 
-export const defaultLayer = layer.pipe(
-  Layer.provide(FetchHttpClient.layer),
-  Layer.provide(AppFileSystem.defaultLayer)
-);
+export const node = LayerNode.make({
+  service: Service,
+  layer,
+  deps: [AppFileSystem.node, Nodes.httpClient]
+});

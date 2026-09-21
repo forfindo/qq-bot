@@ -5,6 +5,7 @@ import { Context, Deferred, Effect, Layer } from 'effect';
 import { Event } from '@/event';
 import { ServiceState } from '@/instance';
 import { Wildcard } from '@/utils';
+import { LayerNode } from '@/runtime';
 
 const EDIT_TOOLS = ['edit', 'write', 'apply_patch'];
 
@@ -92,7 +93,7 @@ interface State {
 
 export class Service extends Context.Service<Service, Interface>()('@openchat/Permission') {}
 
-export const layer = Layer.effect(
+const layer = Layer.effect(
   Service,
   Effect.gen(function* () {
     const events = yield* Event.Service;
@@ -253,4 +254,8 @@ export const layer = Layer.effect(
   })
 );
 
-export const defaultLayer = layer.pipe(Layer.provide(Event.defaultLayer));
+export const node = LayerNode.make({
+  service: Service,
+  layer,
+  deps: [Event.node]
+});

@@ -28,7 +28,6 @@ import type { JSONSchema7, JSONSchema7Definition } from '@ai-sdk/provider';
 import { Glob } from '@/utils';
 import { Flag } from '@/flag';
 import { AppFileSystem, Ripgrep } from '@/file';
-import { FetchHttpClient } from 'effect/unstable/http';
 import { CrossSpawnSpawner } from '@/process';
 import { Database } from '@/database';
 import { Event } from '@/event';
@@ -37,6 +36,7 @@ import { Question } from '@/question';
 import { Instruction, Session, Todo } from '@/session';
 import { Skill } from '@/skill';
 import { Provider } from '@/provider';
+import { LayerNode, Nodes } from '@/runtime';
 
 export const webSearchEnabled = (
   providerID: SchemaProvider.ProviderID,
@@ -137,7 +137,7 @@ export interface Interface {
 
 export class Service extends Context.Service<Service, Interface>()('@openchat/ToolRegistry') {}
 
-export const layer = Layer.effect(
+const layer = Layer.effect(
   Service,
   Effect.gen(function* () {
     const config = yield* Config.Service;
@@ -160,7 +160,6 @@ export const layer = Layer.effect(
     const patchtool = yield* ApplyPatchTool;
     const skilltool = yield* SkillTool;
     const plan = yield* PlanExitTool;
-    const agent = yield* Agent.Service;
 
     const state = yield* ServiceState.make<State>(
       Effect.fn('ToolRegistry.state')(function* (ctx) {
@@ -199,7 +198,7 @@ export const layer = Layer.effect(
                 const output = typeof result === 'string' ? result : result.output;
                 const metadata = typeof result === 'string' ? {} : (result.metadata ?? {});
                 const attachments = typeof result === 'string' ? void 0 : result.attachments;
-                const info = yield* agent.get(toolCtx.agent);
+                const info = yield* agents.get(toolCtx.agent);
                 const out = yield* truncate.output(output, {}, info);
                 return {
                   title: typeof result === 'string' ? '' : (result.title ?? ''),
@@ -381,21 +380,25 @@ export const layer = Layer.effect(
   })
 );
 
-export const defaultLayer = layer.pipe(
-  Layer.provide(Config.defaultLayer),
-  Layer.provide(Agent.defaultLayer),
-  Layer.provide(Question.defaultLayer),
-  Layer.provide(Todo.defaultLayer),
-  Layer.provide(Skill.defaultLayer),
-  Layer.provide(Truncate.defaultLayer),
-  Layer.provide(Session.defaultLayer),
-  Layer.provide(AppFileSystem.defaultLayer),
-  Layer.provide(FetchHttpClient.layer),
-  Layer.provide(CrossSpawnSpawner.defaultLayer),
-  Layer.provide(Event.defaultLayer),
-  Layer.provide(Database.defaultLayer),
-  Layer.provide(BackgroundJob.layer),
-  Layer.provide(Ripgrep.defaultLayer),
-  Layer.provide(Instruction.defaultLayer),
-  Layer.provide(Provider.defaultLayer)
-);
+export const node = LayerNode.make({
+  service: Service,
+  layer,
+  deps: [
+    Config.node,
+    Agent.node,
+    Truncate.node,
+    Question.node,
+    Todo.node,
+    Skill.node,
+    Session.node,
+    Instruction.node,
+    AppFileSystem.node,
+    Nodes.httpClient,
+    Event.node,
+    Database.node,
+    BackgroundJob.node,
+    CrossSpawnSpawner.node,
+    Provider.node,
+    Ripgrep.node
+  ]
+});

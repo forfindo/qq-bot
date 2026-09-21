@@ -1,4 +1,4 @@
-import { Effect, Scope, ScopedCache } from 'effect';
+import { Effect, Logger, Scope, ScopedCache } from 'effect';
 import { InstanceContext, uid } from '@/instance/instance-context';
 import { registerDisposer } from '@/instance/state-registry';
 import { Log } from '@/utils';
@@ -23,7 +23,11 @@ export const make = <A, E = never, R = never>(
     });
 
     const off = registerDisposer(uid =>
-      Effect.runPromise(ScopedCache.invalidate(cache, uid).pipe(Effect.provide(Log.layer)))
+      Effect.runPromise(
+        ScopedCache.invalidate(cache, uid).pipe(
+          Effect.provide(Logger.layer([Log.logger], { mergeWithExisting: false }))
+        )
+      )
     );
     yield* Effect.addFinalizer(() => Effect.sync(off));
 

@@ -14,6 +14,7 @@ import * as ConfigCommand from './command';
 import * as ConfigAgent from './agent';
 import { applyEdits, modify } from 'jsonc-parser';
 import { Npm } from '@/npm';
+import { LayerNode } from '@/runtime';
 
 const log = Log.create();
 
@@ -85,7 +86,7 @@ function globalConfigFile() {
 
 export class Service extends Context.Service<Service, Interface>()('@openchat/Config') {}
 
-export const layer = Layer.effect(
+const layer = Layer.effect(
   Service,
   Effect.gen(function* () {
     const authSvc = yield* Auth.Service;
@@ -457,8 +458,8 @@ export const layer = Layer.effect(
   })
 );
 
-export const defaultLayer = layer.pipe(
-  Layer.provide(Auth.defaultLayer),
-  Layer.provide(Npm.defaultLayer),
-  Layer.provide(AppFileSystem.defaultLayer)
-);
+export const node = LayerNode.make({
+  service: Service,
+  layer,
+  deps: [Auth.node, Npm.node, AppFileSystem.node]
+});

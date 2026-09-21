@@ -2,6 +2,7 @@ import { describe, expect } from 'vitest';
 import { Effect } from 'effect';
 import { Agent } from '@/agent';
 import { InstanceRef } from '@/instance/refrences';
+import { LayerNode } from '@/runtime';
 
 describe('agent service', () => {
   it('list', async () => {
@@ -9,7 +10,7 @@ describe('agent service', () => {
       const agent = yield* Agent.Service;
       return yield* agent.list();
     }).pipe(
-      Effect.provide(Agent.defaultLayer),
+      Effect.provide(LayerNode.compile(Agent.node)),
       Effect.provideService(InstanceRef, { uid: '3530766280', owner: '3530766280', name: '派蒙' }),
       Effect.runPromise
     );

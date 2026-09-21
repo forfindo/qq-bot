@@ -13,6 +13,7 @@ import PROMPT_KIMI from './prompt/kimi.md';
 import PROMPT_DEFAULT from './prompt/default.md';
 import { Skill } from '@/skill';
 import { Permission } from '@/permission';
+import { LayerNode } from '@/runtime';
 
 const channelPromptMap = new Map<string, string>();
 
@@ -87,7 +88,7 @@ export interface Interface {
 
 export class Service extends Context.Service<Service, Interface>()('@openchat/SystemPrompt') {}
 
-export const layer = Layer.effect(
+const layer = Layer.effect(
   Service,
   Effect.gen(function* () {
     const skill = yield* Skill.Service;
@@ -131,7 +132,8 @@ export const layer = Layer.effect(
   })
 );
 
-export const defaultLayer = layer.pipe(
-  Layer.provide(Skill.defaultLayer),
-  Layer.provide(AppFileSystem.defaultLayer)
-);
+export const node = LayerNode.make({
+  service: Service,
+  layer,
+  deps: [Skill.node, AppFileSystem.node]
+});

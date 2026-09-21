@@ -11,6 +11,7 @@ import {
 } from 'effect';
 import { Identifier } from '@/id';
 import { ServiceState } from '@/instance';
+import { LayerNode } from '@/runtime';
 
 export type Status = 'running' | 'completed' | 'error' | 'cancelled';
 
@@ -440,7 +441,7 @@ export const make = Effect.gen(function* () {
   return Service.of({ list, get, start, extend, wait, waitForPromotion, promote, cancel });
 });
 
-export const layer = Layer.effect(
+const layer = Layer.effect(
   Service,
   Effect.gen(function* () {
     const state = yield* ServiceState.make<Interface>(() => make);
@@ -456,3 +457,9 @@ export const layer = Layer.effect(
     });
   })
 );
+
+export const node = LayerNode.make({
+  service: Service,
+  layer,
+  deps: []
+});

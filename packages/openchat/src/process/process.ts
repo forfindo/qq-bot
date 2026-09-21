@@ -3,6 +3,8 @@ import { Context, Duration, Effect, Fiber, Layer, Stream } from 'effect';
 import type { PlatformError } from 'effect/PlatformError';
 import { SchemaProcess } from '@/schema';
 import { ChildProcessSpawner } from 'effect/unstable/process/ChildProcessSpawner';
+import { LayerNode } from '@/runtime';
+import * as CrossSpawnSpawner from './spawner';
 
 const describeCommand = (command: ChildProcess.Command): string => {
   if (command._tag === 'StandardCommand') {
@@ -106,7 +108,7 @@ export type Interface = ChildProcessSpawner['Service'] & {
 
 export class Service extends Context.Service<Service, Interface>()('@openchat/AppProcess') {}
 
-export const layer = Layer.effect(
+const layer = Layer.effect(
   Service,
   Effect.gen(function* () {
     const spawner = yield* ChildProcessSpawner;
@@ -242,3 +244,9 @@ export const layer = Layer.effect(
     });
   })
 );
+
+export const node = LayerNode.make({
+  service: Service,
+  layer,
+  deps: [CrossSpawnSpawner.node]
+});

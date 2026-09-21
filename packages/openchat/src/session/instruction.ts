@@ -2,11 +2,12 @@ import { SchemaFs, SchemaMessage } from '@/schema';
 import { Context, Effect, Layer } from 'effect';
 import { Config } from '@/config';
 import { AppFileSystem } from '@/file';
-import { FetchHttpClient, HttpClient, HttpClientRequest } from 'effect/unstable/http';
+import { HttpClient, HttpClientRequest } from 'effect/unstable/http';
 import { Global, withTransientReadRetry } from '@/utils';
 import path from 'path';
 import { Flag } from '@/flag';
 import { InstanceContext, ServiceState } from '@/instance';
+import { LayerNode, Nodes } from '@/runtime';
 
 const FILES = [
   'AGENTS.md',
@@ -56,7 +57,7 @@ export interface Interface {
 
 export class Service extends Context.Service<Service, Interface>()('@openchat/Instruction') {}
 
-export const layer = Layer.effect(
+const layer = Layer.effect(
   Service,
   Effect.gen(function* () {
     const cfg = yield* Config.Service;
@@ -268,8 +269,8 @@ export const layer = Layer.effect(
   })
 );
 
-export const defaultLayer = layer.pipe(
-  Layer.provide(Config.defaultLayer),
-  Layer.provide(AppFileSystem.defaultLayer),
-  Layer.provide(FetchHttpClient.layer)
-);
+export const node = LayerNode.make({
+  service: Service,
+  layer,
+  deps: [Config.node, AppFileSystem.node, Nodes.httpClient]
+});

@@ -2,13 +2,14 @@ import { describe, expect } from 'vitest';
 import { parse } from '@/config/markdowm';
 import { Effect } from 'effect';
 import { AppFileSystem } from '@/file';
+import { LayerNode } from '@/runtime';
 import path from 'path';
 
 describe('markdown parse', () => {
   it("metadata contain '#'", async () => {
     const filePath = path.resolve(import.meta.dirname, './test.md');
     const md = await parse(filePath).pipe(
-      Effect.provide(AppFileSystem.defaultLayer),
+      Effect.provide(LayerNode.compile(AppFileSystem.node)),
       Effect.runPromise
     );
     expect(Object.prototype.hasOwnProperty.call(md.data, 'name')).toBeFalsy();

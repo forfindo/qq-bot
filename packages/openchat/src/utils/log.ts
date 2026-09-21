@@ -97,8 +97,6 @@ export const logger = Logger.make(opts => {
   }
 });
 
-export const layer = Logger.layer([logger], { mergeWithExisting: false });
-
 export function create(...args: unknown[]) {
   return new DefaultLog(args.toString());
 }

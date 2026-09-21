@@ -21,6 +21,7 @@ import { Flag } from '@/flag';
 import { ModelNotFoundError } from '@/schema/provider';
 import fuzzysort from 'fuzzysort';
 import path from 'path';
+import { LayerNode } from '@/runtime';
 
 const log = Log.create({ service: 'provider' });
 const priority = ['gpt-5', 'claude-sonnet-4', 'big-pickle', 'gemini-3-pro'];
@@ -259,7 +260,7 @@ export interface Interface {
 
 export class Service extends Context.Service<Service, Interface>()('@openchat/Provider') {}
 
-export const layer = Layer.effect(
+const layer = Layer.effect(
   Service,
   Effect.gen(function* () {
     const fs = yield* AppFileSystem.Service;
@@ -858,11 +859,8 @@ export const layer = Layer.effect(
   })
 );
 
-export const defaultLayer = Layer.suspend(() =>
-  layer.pipe(
-    Layer.provide(AppFileSystem.defaultLayer),
-    Layer.provide(Config.defaultLayer),
-    Layer.provide(Auth.defaultLayer),
-    Layer.provide(ModelsDev.defaultLayer)
-  )
-);
+export const node = LayerNode.make({
+  service: Service,
+  layer,
+  deps: [AppFileSystem.node, Config.node, Auth.node, ModelsDev.node]
+});

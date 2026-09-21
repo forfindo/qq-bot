@@ -24,6 +24,7 @@ import { AppFileSystem } from '@/file';
 import { cancelPending, ensureRunning } from '@/mcp/oauth-callback';
 import { CrossSpawnSpawner } from '@/process';
 import { InstallationVersion } from '@/installation/version';
+import { LayerNode } from '@/runtime';
 
 // Prompt cache types
 type PromptInfo = Awaited<ReturnType<MCPClient['listPrompts']>>['prompts'][number];
@@ -240,7 +241,7 @@ export interface Interface {
 
 export class Service extends Context.Service<Service, Interface>()('@openchat/MCP') {}
 
-export const layer = Layer.effect(
+const layer = Layer.effect(
   Service,
   Effect.gen(function* () {
     const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
@@ -970,10 +971,8 @@ export type AuthStatus = 'authenticated' | 'expired' | 'not_authenticated';
 
 // --- Per-service runtime ---
 
-export const defaultLayer = layer.pipe(
-  Layer.provide(McpAuth.layer),
-  Layer.provide(Event.defaultLayer),
-  Layer.provide(Config.defaultLayer),
-  Layer.provide(CrossSpawnSpawner.defaultLayer),
-  Layer.provide(AppFileSystem.defaultLayer)
-);
+export const node = LayerNode.make({
+  service: Service,
+  layer,
+  deps: [McpAuth.node, Event.node, Config.node, CrossSpawnSpawner.node, AppFileSystem.node]
+});

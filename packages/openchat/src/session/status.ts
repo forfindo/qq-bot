@@ -2,6 +2,7 @@ import { SchemaSession } from '@/schema';
 import { Context, Effect, Layer } from 'effect';
 import { Event } from '@/event';
 import { ServiceState } from '@/instance';
+import { LayerNode } from '@/runtime';
 
 export interface Interface {
   readonly get: (sessionID: SchemaSession.SessionID) => Effect.Effect<SchemaSession.StatusInfo>;
@@ -14,7 +15,7 @@ export interface Interface {
 
 export class Service extends Context.Service<Service, Interface>()('@openchat/SessionStatus') {}
 
-export const layer = Layer.effect(
+const layer = Layer.effect(
   Service,
   Effect.gen(function* () {
     const bus = yield* Event.Service;
@@ -52,4 +53,8 @@ export const layer = Layer.effect(
   })
 );
 
-export const defaultLayer = layer.pipe(Layer.provide(Event.defaultLayer));
+export const node = LayerNode.make({
+  service: Service,
+  layer,
+  deps: [Event.node]
+});

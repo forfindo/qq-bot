@@ -5,6 +5,7 @@ import { isDeepStrictEqual } from 'node:util';
 import { Database } from '@/database';
 import { EventSequenceTable, EventTable } from '@/database/sql/event.sql';
 import { and, asc, eq, gt } from 'drizzle-orm';
+import { LayerNode } from '@/runtime';
 
 const versionedType = (type: string, version: number) => {
   return `${type}.${version}`;
@@ -624,5 +625,9 @@ const layerWith = (options?: LayerOptions) =>
     })
   );
 
-export const layer = layerWith();
-export const defaultLayer = layer.pipe(Layer.provide(Database.defaultLayer));
+const layer = layerWith();
+export const node = LayerNode.make({
+  service: Service,
+  layer,
+  deps: [Database.node]
+});

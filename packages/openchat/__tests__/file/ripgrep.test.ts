@@ -1,11 +1,12 @@
 import { describe, expect } from 'vitest';
 import { Context, Effect, Layer, Scope, Stream } from 'effect';
 import { Ripgrep } from '@/file';
+import { LayerNode } from '@/runtime';
 import path from 'path';
 
 describe('ripgrep', () => {
   const effect = Layer.buildWithMemoMap(
-    Ripgrep.defaultLayer,
+    LayerNode.compile(Ripgrep.node),
     Layer.makeMemoMapUnsafe(),
     Scope.makeUnsafe()
   );

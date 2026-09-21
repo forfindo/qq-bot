@@ -4,6 +4,8 @@ import { Context, Effect, Layer, Result } from 'effect';
 import { SchemaImage } from '@/schema';
 import { Log } from '@/utils';
 
+import { LayerNode } from '@/runtime';
+
 const MAX_BASE64_BYTES = 5 * 1024 * 1024;
 const MAX_WIDTH = 2000;
 const MAX_HEIGHT = 2000;
@@ -19,7 +21,7 @@ export interface Interface {
 
 export class Service extends Context.Service<Service, Interface>()('@openchat/Image') {}
 
-export const layer = Layer.effect(
+const layer = Layer.effect(
   Service,
   Effect.gen(function* () {
     const config = yield* Config.Service;
@@ -175,4 +177,8 @@ export const layer = Layer.effect(
   })
 );
 
-export const defaultLayer = layer.pipe(Layer.provide(Config.defaultLayer));
+export const node = LayerNode.make({
+  service: Service,
+  layer,
+  deps: [Config.node]
+});

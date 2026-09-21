@@ -3,6 +3,7 @@ import { Context, Deferred, Effect, Layer } from 'effect';
 import { Event } from '@/event';
 import { ServiceState } from '@/instance';
 import { Log } from '@/utils';
+import { LayerNode } from '@/runtime';
 
 const log = Log.create({ service: 'question' });
 
@@ -31,7 +32,7 @@ export interface Interface {
 
 export class Service extends Context.Service<Service, Interface>()('@openchat/Question') {}
 
-export const layer = Layer.effect(
+const layer = Layer.effect(
   Service,
   Effect.gen(function* () {
     const bus = yield* Event.Service;
@@ -138,4 +139,8 @@ export const layer = Layer.effect(
   })
 );
 
-export const defaultLayer = layer.pipe(Layer.provide(Event.defaultLayer));
+export const node = LayerNode.make({
+  service: Service,
+  layer,
+  deps: [Event.node]
+});

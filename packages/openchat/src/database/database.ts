@@ -4,7 +4,8 @@ import { isAbsolute, join } from 'path';
 import { Flag } from '@/flag';
 import { Global } from '@/utils';
 import { InstallationChannel } from '@/installation/version';
-import { layer as sqliteLayer } from './sqlite.node';
+import { node as makeSqliteNode } from './sqlite.node';
+import { LayerNode } from '@/runtime';
 
 const makeDatabase = EffectDrizzleSqlite.makeWithDefaults();
 type DatabaseShape = Effect.Success<typeof makeDatabase>;
@@ -15,7 +16,7 @@ export interface Interface {
 
 export class Service extends Context.Service<Service, Interface>()('@openchat/Database') {}
 
-export const layer = Layer.effect(
+const layer = Layer.effect(
   Service,
   Effect.gen(function* () {
     const db = yield* makeDatabase;
@@ -51,4 +52,10 @@ export function path() {
   );
 }
 
-export const defaultLayer = layer.pipe(Layer.provide(sqliteLayer({ filename: path() })));
+export const sqliteNode = makeSqliteNode({ filename: path() });
+
+export const node = LayerNode.make({
+  service: Service,
+  layer,
+  deps: [sqliteNode]
+});

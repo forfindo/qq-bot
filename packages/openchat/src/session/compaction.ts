@@ -12,6 +12,7 @@ import { NotFoundError } from '@/storage/storage';
 import * as Message from './message';
 import { Flag } from '@/flag';
 import SUMMARY_TEMPLATE from './prompt/summary-template.md';
+import { LayerNode } from '@/runtime';
 
 const log = Log.create({ service: 'session.compaction' });
 
@@ -181,7 +182,7 @@ export interface Interface {
 
 export class Service extends Context.Service<Service, Interface>()('@openchat/SessionCompaction') {}
 
-export const layer = Layer.effect(
+const layer = Layer.effect(
   Service,
   Effect.gen(function* () {
     const event = yield* Event.Service;
@@ -608,11 +609,8 @@ export const layer = Layer.effect(
   })
 );
 
-export const defaultLayer = layer.pipe(
-  Layer.provide(Event.defaultLayer),
-  Layer.provide(Config.defaultLayer),
-  Layer.provide(Session.defaultLayer),
-  Layer.provide(Agent.defaultLayer),
-  Layer.provide(SessionProcessor.defaultLayer),
-  Layer.provide(Provider.defaultLayer)
-);
+export const node = LayerNode.make({
+  service: Service,
+  layer,
+  deps: [Event.node, Config.node, Session.node, Agent.node, SessionProcessor.node, Provider.node]
+});

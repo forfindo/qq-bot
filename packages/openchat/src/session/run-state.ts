@@ -3,6 +3,7 @@ import { SchemaMessage, SchemaSession } from '@/schema';
 import * as SessionStatus from './status';
 import { BackgroundJob } from '@/background';
 import { Runner, ServiceState } from '@/instance';
+import { LayerNode } from '@/runtime';
 
 const busyError = (sessionID: SchemaSession.SessionID) => {
   return new SchemaSession.BusyError({ sessionID });
@@ -74,7 +75,7 @@ export interface Interface {
 
 export class Service extends Context.Service<Service, Interface>()('@openchat/SessionRunState') {}
 
-export const layer = Layer.effect(
+const layer = Layer.effect(
   Service,
   Effect.gen(function* () {
     const background = yield* BackgroundJob.Service;
@@ -164,7 +165,8 @@ export const layer = Layer.effect(
   })
 );
 
-export const defaultLayer = layer.pipe(
-  Layer.provide(BackgroundJob.layer),
-  Layer.provide(SessionStatus.defaultLayer)
-);
+export const node = LayerNode.make({
+  service: Service,
+  layer,
+  deps: [BackgroundJob.node, SessionStatus.node]
+});

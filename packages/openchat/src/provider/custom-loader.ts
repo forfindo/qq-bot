@@ -6,6 +6,7 @@ import { iife, Log, TypeGuard } from '@/utils';
 import { InstanceContext } from '@/instance';
 import os from 'os';
 import { InstallationVersion } from '@/installation/version';
+import { LayerNode } from '@/runtime';
 
 const log = Log.create({ service: 'provider' });
 
@@ -753,7 +754,7 @@ export function custom(dep: CustomDep): Record<string, CustomLoader> {
           }
         };
       },
-      Effect.provide(AppFileSystem.defaultLayer),
+      Effect.provide(LayerNode.compile(AppFileSystem.node)),
       Effect.orDie
     ),
     'cloudflare-workers-ai': Effect.fnUntraced(function* (input: SchemaProvider.Info) {

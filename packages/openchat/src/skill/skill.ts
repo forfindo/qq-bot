@@ -11,6 +11,7 @@ import { Flag } from '@/flag';
 import { getDirectory } from '@/instance/instance-context';
 import { Permission } from '@/permission';
 import { pathToFileURL } from 'url';
+import { LayerNode } from '@/runtime';
 
 const log = Log.create({ service: 'skill' });
 const CLAUDE_EXTERNAL_DIR = '.claude';
@@ -165,7 +166,7 @@ export interface Interface {
 
 export class Service extends Context.Service<Service, Interface>()('@openchat/Skill') {}
 
-export const layer = Layer.effect(
+const layer = Layer.effect(
   Service,
   Effect.gen(function* () {
     const discovery = yield* Discovery.Service;
@@ -281,9 +282,8 @@ export const layer = Layer.effect(
   })
 );
 
-export const defaultLayer = layer.pipe(
-  Layer.provide(AppFileSystem.defaultLayer),
-  Layer.provide(Event.defaultLayer),
-  Layer.provide(Config.defaultLayer),
-  Layer.provide(Discovery.defaultLayer)
-);
+export const node = LayerNode.make({
+  service: Service,
+  layer,
+  deps: [Discovery.node, Config.node, Event.node, AppFileSystem.node]
+});

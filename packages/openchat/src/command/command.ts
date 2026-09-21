@@ -4,6 +4,7 @@ import { MCP } from '@/mcp';
 import { Skill } from '@/skill';
 import { EffectRunner, ServiceState } from '@/instance';
 import { Config } from '@/config';
+import { LayerNode } from '@/runtime';
 
 export const hints = (template: string) => {
   const result: string[] = [];
@@ -30,7 +31,7 @@ export interface Interface {
 
 export class Service extends Context.Service<Service, Interface>()('@openchat/Command') {}
 
-export const layer = Layer.effect(
+const layer = Layer.effect(
   Service,
   Effect.gen(function* () {
     const config = yield* Config.Service;
@@ -124,8 +125,8 @@ export const layer = Layer.effect(
   })
 );
 
-export const defaultLayer = layer.pipe(
-  Layer.provide(Config.defaultLayer),
-  Layer.provide(MCP.defaultLayer),
-  Layer.provide(Skill.defaultLayer)
-);
+export const node = LayerNode.make({
+  service: Service,
+  layer,
+  deps: [Config.node, MCP.node, Skill.node]
+});

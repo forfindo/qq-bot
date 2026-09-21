@@ -2,6 +2,7 @@ import { Effect } from 'effect';
 import { Provider } from '@/provider';
 import { InstanceContext } from '@/instance';
 import { SchemaProvider } from '@/schema';
+import { LayerNode } from '@/runtime';
 import { expect } from 'vitest';
 
 describe('provider service', () => {
@@ -16,10 +17,10 @@ describe('provider service', () => {
         return await Effect.gen(function* () {
           const provider = yield* Provider.Service;
           return yield* provider.list();
-        }).pipe(Effect.provide(Provider.defaultLayer), Effect.runPromise);
+        }).pipe(Effect.provide(LayerNode.compile(Provider.node)), Effect.runPromise);
       }
     );
-    expect(Object.keys(list)).toStrictEqual(['opencode', 'deepseek']);
+    expect(Object.keys(list)).toStrictEqual(['opencode', 'deepseek', 'test']);
   });
 
   it('getProvider', async () => {
@@ -34,7 +35,7 @@ describe('provider service', () => {
           const provider = yield* Provider.Service;
           const id = SchemaProvider.ProviderID.make('deepseek');
           return yield* provider.getProvider(id);
-        }).pipe(Effect.provide(Provider.defaultLayer), Effect.runPromise);
+        }).pipe(Effect.provide(LayerNode.compile(Provider.node)), Effect.runPromise);
       }
     );
     expect(Object.keys(deepseek.models).length).toBeTruthy();

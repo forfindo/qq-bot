@@ -6,6 +6,7 @@ import { Identifier } from '@/id';
 import { Global, Log } from '@/utils';
 import { Config } from '@/config';
 import { Permission } from '@/permission';
+import { LayerNode } from '@/runtime';
 
 const log = Log.create({ service: 'truncation' });
 const RETENTION = Duration.days(7);
@@ -52,7 +53,7 @@ export interface Interface {
 
 export class Service extends Context.Service<Service, Interface>()('@opechat/Truncate') {}
 
-export const layer = Layer.effect(
+const layer = Layer.effect(
   Service,
   Effect.gen(function* () {
     const fs = yield* AppFileSystem.Service;
@@ -173,4 +174,8 @@ export const layer = Layer.effect(
   })
 );
 
-export const defaultLayer = layer.pipe(Layer.provide(AppFileSystem.defaultLayer));
+export const node = LayerNode.make({
+  service: Service,
+  layer,
+  deps: [AppFileSystem.node]
+});

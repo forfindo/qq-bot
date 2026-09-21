@@ -17,6 +17,7 @@ import {
 } from 'effect/unstable/sql/SqlError';
 import * as Statement from 'effect/unstable/sql/Statement';
 import * as Sqlite from './sqlite';
+import { LayerNode } from '@/runtime';
 
 const ATTR_DB_SYSTEM_NAME = 'db.system.name';
 
@@ -210,10 +211,17 @@ const drizzleLayer = Layer.effect(
   })
 );
 
-export const layer = (config: Config) => {
+const layer = (config: Config) => {
   const native = nativeLayer(config);
   return Layer.merge(
     native,
     Layer.merge(sqliteLayer(config), drizzleLayer).pipe(Layer.provide(native))
   ).pipe(Layer.provide(Reactivity.layer));
 };
+
+export const node = (config: Config) =>
+  LayerNode.make({
+    service: Client.SqlClient,
+    layer: layer(config),
+    deps: []
+  });

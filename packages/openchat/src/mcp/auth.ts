@@ -3,6 +3,7 @@ import { SchemaMcp } from '@/schema';
 import { AppFileSystem } from '@/file';
 import path from 'path';
 import { Global } from '@/utils';
+import { LayerNode } from '@/runtime';
 
 const filepath = path.join(Global.Path.data, 'mcp-auth.json');
 
@@ -39,7 +40,7 @@ export interface Interface {
 
 export class Service extends Context.Service<Service, Interface>()('@openchat/McpAuth') {}
 
-export const layer = Layer.effect(
+const layer = Layer.effect(
   Service,
   Effect.gen(function* () {
     const fs = yield* AppFileSystem.Service;
@@ -154,4 +155,8 @@ export const layer = Layer.effect(
   })
 );
 
-export const defaultLayer = layer.pipe(Layer.provide(AppFileSystem.defaultLayer));
+export const node = LayerNode.make({
+  service: Service,
+  layer,
+  deps: [AppFileSystem.node]
+});

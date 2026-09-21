@@ -130,9 +130,9 @@ function wall() {
   return performance.timeOrigin + mono();
 }
 
-function stats(file: string) {
+async function stats(file: string) {
   try {
-    return stat(file);
+    return await stat(file);
   } catch (err) {
     const errCode = code(err);
     if (errCode === 'ENOENT' || errCode === 'ENOTDIR') {

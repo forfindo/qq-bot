@@ -2,11 +2,12 @@ import { Cause, Context, Effect, Fiber, Layer, Queue, Stream } from 'effect';
 import { SchemaRipgrep } from '@/schema';
 import type { PlatformError } from 'effect/PlatformError';
 import { AppFileSystem } from '@/file';
-import { FetchHttpClient, HttpClient, HttpClientRequest } from 'effect/unstable/http';
+import { HttpClient, HttpClientRequest } from 'effect/unstable/http';
 import { ChildProcess, ChildProcessSpawner } from 'effect/unstable/process';
 import path from 'path';
 import { Global, Log, ProcessUtil, which } from '@/utils';
 import { CrossSpawnSpawner } from '@/process';
+import { LayerNode, Nodes } from '@/runtime';
 
 const log = Log.create({ service: 'ripgrep' });
 const VERSION = '15.1.0';
@@ -137,7 +138,7 @@ export interface Interface {
 
 export class Service extends Context.Service<Service, Interface>()('@openchat/Ripgrep') {}
 
-export const layer = Layer.effect(
+const layer = Layer.effect(
   Service,
   Effect.gen(function* () {
     const fs = yield* AppFileSystem.Service;
@@ -428,8 +429,8 @@ export const layer = Layer.effect(
   })
 );
 
-export const defaultLayer = layer.pipe(
-  Layer.provide(FetchHttpClient.layer),
-  Layer.provide(AppFileSystem.defaultLayer),
-  Layer.provide(CrossSpawnSpawner.defaultLayer)
-);
+export const node = LayerNode.make({
+  service: Service,
+  layer,
+  deps: [AppFileSystem.node, Nodes.httpClient, CrossSpawnSpawner.node]
+});

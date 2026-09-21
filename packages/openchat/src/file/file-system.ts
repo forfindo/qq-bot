@@ -5,6 +5,7 @@ import * as NFS from 'fs/promises';
 import { Effect, FileSystem, Layer, Context } from 'effect';
 import { Glob } from '@/utils';
 import { SchemaFs } from '@/schema';
+import { LayerNode, Nodes } from '@/runtime';
 
 export interface DirEntry {
   readonly name: string;
@@ -52,7 +53,7 @@ export interface Interface extends FileSystem.FileSystem {
 
 export class Service extends Context.Service<Service, Interface>()('@openchat/FileSystem') {}
 
-export const layer = Layer.effect(
+const layer = Layer.effect(
   Service,
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
@@ -249,7 +250,11 @@ export const layer = Layer.effect(
   })
 );
 
-export const defaultLayer = layer.pipe(Layer.provide(NodeFileSystem.layer));
+export const node = LayerNode.make({
+  service: Service,
+  layer,
+  deps: [Nodes.filesystem]
+});
 
 export function mimeType(p: string): string {
   return p || 'application/octet-stream';

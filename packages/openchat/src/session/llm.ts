@@ -23,6 +23,7 @@ import { EffectRunner, InstanceContext } from '@/instance';
 import { Event } from '@/event';
 import { InstallationVersion } from '@/installation/version';
 import { AppFileSystem } from '@/file';
+import { LayerNode } from '@/runtime';
 
 const log = Log.create({ service: 'llm' });
 
@@ -467,11 +468,8 @@ const layer = Layer.effect(
   })
 );
 
-export const defaultLayer = layer.pipe(
-  Layer.provide(Auth.defaultLayer),
-  Layer.provide(Config.defaultLayer),
-  Layer.provide(Provider.defaultLayer),
-  Layer.provide(Permission.defaultLayer),
-  Layer.provide(Event.defaultLayer),
-  Layer.provide(AppFileSystem.defaultLayer)
-);
+export const node = LayerNode.make({
+  service: Service,
+  layer,
+  deps: [Auth.node, Config.node, Provider.node, Permission.node, AppFileSystem.node, Event.node]
+});

@@ -1,14 +1,10 @@
 import { Context, Effect, Layer } from 'effect';
 import { Global, Log, withTransientReadRetry } from '@/utils';
 import { AppFileSystem } from '@/file';
-import {
-  FetchHttpClient,
-  HttpClient,
-  HttpClientRequest,
-  HttpClientResponse
-} from 'effect/unstable/http';
+import { HttpClient, HttpClientRequest, HttpClientResponse } from 'effect/unstable/http';
 import path from 'path';
 import { SchemaSkill } from '@/schema';
+import { LayerNode, Nodes } from '@/runtime';
 
 const log = Log.create({ service: 'skill-discovery' });
 const skillConcurrency = 4;
@@ -20,7 +16,7 @@ export interface Interface {
 
 export class Service extends Context.Service<Service, Interface>()('@openchat/SkillDiscovery') {}
 
-export const layer = Layer.effect(
+const layer = Layer.effect(
   Service,
   Effect.gen(function* () {
     const fs = yield* AppFileSystem.Service;
@@ -106,7 +102,8 @@ export const layer = Layer.effect(
   })
 );
 
-export const defaultLayer = layer.pipe(
-  Layer.provide(AppFileSystem.defaultLayer),
-  Layer.provide(FetchHttpClient.layer)
-);
+export const node = LayerNode.make({
+  service: Service,
+  layer,
+  deps: [AppFileSystem.node, Nodes.httpClient]
+});

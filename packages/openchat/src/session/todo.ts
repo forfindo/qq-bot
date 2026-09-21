@@ -4,6 +4,7 @@ import { Event } from '@/event';
 import { Database } from '@/database';
 import { asc, eq } from 'drizzle-orm';
 import { TodoTable } from '@/database/sql/session.sql';
+import { LayerNode } from '@/runtime';
 
 export interface Interface {
   readonly update: (input: {
@@ -15,7 +16,7 @@ export interface Interface {
 
 export class Service extends Context.Service<Service, Interface>()('@openchat/SessionTodo') {}
 
-export const layer = Layer.effect(
+const layer = Layer.effect(
   Service,
   Effect.gen(function* () {
     const bus = yield* Event.Service;
@@ -71,7 +72,8 @@ export const layer = Layer.effect(
   })
 );
 
-export const defaultLayer = layer.pipe(
-  Layer.provide(Event.defaultLayer),
-  Layer.provide(Database.defaultLayer)
-);
+export const node = LayerNode.make({
+  service: Service,
+  layer,
+  deps: [Event.node, Database.node]
+});

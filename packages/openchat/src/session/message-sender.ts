@@ -1,33 +1,5 @@
 import { Context, Effect } from 'effect';
 
-export const withSenderInfo = (input: string, sender: Interface) => {
-  if (sender.type === 'user') {
-    return JSON.stringify({
-      type: 'message',
-      nickname: sender.source.nickname,
-      uid: sender.source.uid,
-      channelType: sender.channelType,
-      channelID: sender.channelInfo?.channelID,
-      channelName: sender.channelInfo?.channelName,
-      time: sender.time,
-      message: input
-    });
-  } else if (sender.type === 'system') {
-    return JSON.stringify({
-      type: 'notification',
-      eventType: sender.eventType,
-      channelType: sender.channelType,
-      channelID: sender.channelInfo?.channelID,
-      channelName: sender.channelInfo?.channelName,
-      time: sender.time,
-      content: input,
-      source: sender.source
-    });
-  } else {
-    return '不支持的消息类型';
-  }
-};
-
 export interface UserInterface {
   type: 'user';
   source: {
@@ -84,4 +56,33 @@ export const Service = Effect.gen(function* () {
     return yield* Effect.die(new Error('MessageSender is required'));
   }
   return sender;
+});
+
+export const withSenderInfo = Effect.fn('MessageSender.withSenderInfo')(function* (input: string) {
+  const sender = yield* Service;
+  if (sender.type === 'user') {
+    return JSON.stringify({
+      type: 'message',
+      nickname: sender.source.nickname,
+      uid: sender.source.uid,
+      channelType: sender.channelType,
+      channelID: sender.channelInfo?.channelID,
+      channelName: sender.channelInfo?.channelName,
+      time: sender.time,
+      message: input
+    });
+  } else if (sender.type === 'system') {
+    return JSON.stringify({
+      type: 'notification',
+      eventType: sender.eventType,
+      channelType: sender.channelType,
+      channelID: sender.channelInfo?.channelID,
+      channelName: sender.channelInfo?.channelName,
+      time: sender.time,
+      content: input,
+      source: sender.source
+    });
+  } else {
+    return '不支持的消息类型';
+  }
 });

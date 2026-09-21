@@ -46,6 +46,7 @@ import { LLM } from '@/session/index';
 import { Encrypto, JsonSchemaTool, Log, ProcessUtil, ShellUtil } from '@/utils';
 import { fileURLToPath, pathToFileURL } from 'url';
 import { NamedError } from '@/utils/error';
+import { LayerNode } from '@/runtime';
 import { Flag } from '@/flag';
 import { TaskTool, type TaskPromptOps } from '@/tool/tools/task';
 import path from 'path';
@@ -125,7 +126,7 @@ export interface Interface {
 
 export class Service extends Context.Service<Service, Interface>()('@openchat/SessionPrompt') {}
 
-export const layer = Layer.effect(
+const layer = Layer.effect(
   Service,
   Effect.gen(function* () {
     const event = yield* Event.Service;
@@ -1840,29 +1841,29 @@ export const layer = Layer.effect(
   })
 );
 
-export const defaultLayer = layer.pipe(
-  Layer.provide(SessionStatus.defaultLayer),
-  Layer.provide(Session.defaultLayer),
-  Layer.provide(Provider.defaultLayer),
-  Layer.provide(SessionProcessor.defaultLayer),
-  Layer.provide(SessionCompaction.defaultLayer),
-  Layer.provide(Command.defaultLayer),
-  Layer.provide(Config.defaultLayer),
-  Layer.provide(Permission.defaultLayer),
-  Layer.provide(AppFileSystem.defaultLayer),
-  Layer.provide(MCP.defaultLayer),
-  Layer.provide(ToolRegistry.defaultLayer),
-  Layer.provide(Truncate.defaultLayer),
-  Layer.provide(Image.defaultLayer),
-  Layer.provide(Instruction.defaultLayer),
-  Layer.provide(SessionRunState.defaultLayer),
-  Layer.provide(
-    Layer.mergeAll(
-      Agent.defaultLayer,
-      SystemPrompt.defaultLayer,
-      LLM.defaultLayer,
-      CrossSpawnSpawner.defaultLayer,
-      Event.defaultLayer
-    )
-  )
-);
+export const node = LayerNode.make({
+  service: Service,
+  layer,
+  deps: [
+    CrossSpawnSpawner.node,
+    Event.node,
+    SessionStatus.node,
+    Session.node,
+    Agent.node,
+    Provider.node,
+    SessionProcessor.node,
+    SessionCompaction.node,
+    Command.node,
+    Config.node,
+    Permission.node,
+    AppFileSystem.node,
+    MCP.node,
+    ToolRegistry.node,
+    Truncate.node,
+    Image.node,
+    Instruction.node,
+    SessionRunState.node,
+    SystemPrompt.node,
+    LLM.node
+  ]
+});

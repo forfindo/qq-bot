@@ -4,6 +4,7 @@ import { AppFileSystem } from '@/file';
 import path from 'path';
 import { Global } from '@/utils';
 import { Flag } from '@/flag';
+import { LayerNode } from '@/runtime';
 
 const file = path.join(Global.Path.data, 'auth.json');
 const fail = (message: string) => (cause: unknown) => new SchemaAuth.AuthError({ message, cause });
@@ -19,7 +20,7 @@ export interface Interface {
 
 export class Service extends Context.Service<Service, Interface>()('@openchat/Auth') {}
 
-export const layer = Layer.effect(
+const layer = Layer.effect(
   Service,
   Effect.gen(function* () {
     const fs = yield* AppFileSystem.Service;
@@ -71,4 +72,8 @@ export const layer = Layer.effect(
   })
 );
 
-export const defaultLayer = layer.pipe(Layer.provide(AppFileSystem.defaultLayer));
+export const node = LayerNode.make({
+  service: Service,
+  layer,
+  deps: [AppFileSystem.node]
+});

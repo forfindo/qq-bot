@@ -14,6 +14,7 @@ import { InstanceContext } from '@/instance';
 import type { LanguageModelUsage } from 'ai';
 import Decimal from 'decimal.js';
 import path from 'path';
+import { LayerNode } from '@/runtime';
 
 export type NotFound = NotFoundError;
 
@@ -310,7 +311,7 @@ export interface Interface {
 
 export class Service extends Context.Service<Service, Interface>()('@openchat/Session') {}
 
-export const layer = Layer.effect(
+const layer = Layer.effect(
   Service,
   Effect.gen(function* () {
     const database = yield* Database.Service;
@@ -776,8 +777,8 @@ export const layer = Layer.effect(
   })
 );
 
-export const defaultLayer = layer.pipe(
-  Layer.provide(BackgroundJob.layer),
-  Layer.provide(Event.defaultLayer),
-  Layer.provide(Database.defaultLayer)
-);
+export const node = LayerNode.make({
+  service: Service,
+  layer,
+  deps: [Database.node, Event.node, BackgroundJob.node]
+});
