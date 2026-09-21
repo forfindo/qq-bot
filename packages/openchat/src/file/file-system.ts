@@ -250,7 +250,7 @@ const layer = Layer.effect(
   })
 );
 
-export const node = LayerNode.make({
+export const node = LayerNode.makeGlobalNode({
   service: Service,
   layer,
   deps: [Nodes.filesystem]

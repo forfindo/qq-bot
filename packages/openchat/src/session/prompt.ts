@@ -58,6 +58,7 @@ import { type Tool as AITool, tool, jsonSchema, type ToolExecutionOptions, asSch
 import type { JSONSchema7 } from '@ai-sdk/provider';
 import { ShellToolID } from '@/tool/shell/id';
 import { CrossSpawnSpawner } from '@/process';
+import { Database } from '@/database';
 
 const log = Log.create({ service: 'session.prompt' });
 
@@ -146,6 +147,7 @@ const layer = Layer.effect(
     const image = yield* Image.Service;
     const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
     const scope = yield* Scope.Scope;
+    const database = yield* Database.Service;
     const instruction = yield* Instruction.Service;
     const state = yield* SessionRunState.Service;
     const sys = yield* SystemPrompt.Service;
@@ -716,275 +718,278 @@ const layer = Layer.effect(
     });
 
     const runLoop: (sessionID: SchemaSession.SessionID) => Effect.Effect<SchemaMessage.WithParts> =
-      Effect.fn('SessionPrompt.run')(function* (sessionID: SchemaSession.SessionID) {
-        let structured: unknown;
-        let step = 0;
-        const session = yield* sessions.get(sessionID).pipe(Effect.orDie);
+      Effect.fn('SessionPrompt.run')(
+        function* (sessionID: SchemaSession.SessionID) {
+          let structured: unknown;
+          let step = 0;
+          const session = yield* sessions.get(sessionID).pipe(Effect.orDie);
 
-        while (true) {
-          yield* status.set(sessionID, { type: 'busy' });
-          log.info('loop', { step });
+          while (true) {
+            yield* status.set(sessionID, { type: 'busy' });
+            log.info('loop', { step });
 
-          let msgs = yield* Message.filterCompactedEffect(sessionID);
+            let msgs = yield* Message.filterCompactedEffect(sessionID);
 
-          const {
-            user: lastUser,
-            assistant: lastAssistant,
-            finished: lastFinished,
-            tasks
-          } = Message.latest(msgs);
+            const {
+              user: lastUser,
+              assistant: lastAssistant,
+              finished: lastFinished,
+              tasks
+            } = Message.latest(msgs);
 
-          if (!lastUser) {
-            throw new Error('No user message found in stream. This should never happen.');
-          }
+            if (!lastUser) {
+              throw new Error('No user message found in stream. This should never happen.');
+            }
 
-          const lastAssistantMsg = msgs.findLast(
-            msg => msg.info.role === 'assistant' && msg.info.id === lastAssistant?.id
-          );
-          // Some providers return "stop" even when the assistant message contains tool calls.
-          // Keep the loop running so tool results can be sent back to the model.
-          // Skip provider-executed tool parts — those were fully handled within the
-          // provider's stream (e.g. DWS Agent Platform) and don't need a re-loop.
-          const hasToolCalls =
-            lastAssistantMsg?.parts.some(
-              part => part.type === 'tool' && !part.metadata?.providerExecuted
-            ) ?? false;
+            const lastAssistantMsg = msgs.findLast(
+              msg => msg.info.role === 'assistant' && msg.info.id === lastAssistant?.id
+            );
+            // Some providers return "stop" even when the assistant message contains tool calls.
+            // Keep the loop running so tool results can be sent back to the model.
+            // Skip provider-executed tool parts — those were fully handled within the
+            // provider's stream (e.g. DWS Agent Platform) and don't need a re-loop.
+            const hasToolCalls =
+              lastAssistantMsg?.parts.some(
+                part => part.type === 'tool' && !part.metadata?.providerExecuted
+              ) ?? false;
 
-          if (
-            lastAssistant?.finish &&
-            !['tool-calls'].includes(lastAssistant.finish) &&
-            !hasToolCalls &&
-            lastUser.id < lastAssistant.id
-          ) {
-            log.info('exiting loop');
-            break;
-          }
-
-          step++;
-          if (step === 1) {
-            yield* title({
-              session,
-              modelID: lastUser.model.modelID,
-              providerID: lastUser.model.providerID,
-              history: msgs
-            }).pipe(Effect.ignore, Effect.forkIn(scope));
-          }
-
-          const model = yield* getModel(
-            lastUser.model.providerID,
-            lastUser.model.modelID,
-            sessionID
-          );
-          const task = tasks.pop();
-
-          if (task?.type === 'subtask') {
-            yield* handleSubtask({ task, model, lastUser, sessionID, session, msgs });
-            continue;
-          }
-
-          if (task?.type === 'compaction') {
-            const result = yield* compaction.process({
-              messages: msgs,
-              parentID: lastUser.id,
-              sessionID,
-              auto: task.auto,
-              overflow: task.overflow
-            });
-            if (result === 'stop') {
+            if (
+              lastAssistant?.finish &&
+              !['tool-calls'].includes(lastAssistant.finish) &&
+              !hasToolCalls &&
+              lastUser.id < lastAssistant.id
+            ) {
+              log.info('exiting loop');
               break;
             }
-            continue;
-          }
 
-          if (
-            lastFinished &&
-            lastFinished.summary !== true &&
-            (yield* compaction.isOverflow({ tokens: lastFinished.tokens, model }))
-          ) {
-            yield* compaction.create({
-              sessionID,
-              agent: lastUser.agent,
-              model: lastUser.model,
-              auto: true
-            });
-            continue;
-          }
-
-          const agent = yield* agents.get(lastUser.agent);
-          if (!agent) {
-            const available = (yield* agents.list()).filter(a => !a.hidden).map(a => a.name);
-            const hint = available.length ? ` Available agents: ${available.join(', ')}` : '';
-            const error = new NamedError.Unknown({
-              message: `Agent not found: "${lastUser.agent}".${hint}`
-            });
-            yield* event.publish(SchemaSession.Events.Error, {
-              sessionID,
-              error: error.toObject()
-            });
-            throw error;
-          }
-          const maxSteps = agent.steps ?? Infinity;
-          const isLastStep = step >= maxSteps;
-          msgs = yield* SessionReminder.apply({ messages: msgs, agent, session }).pipe(
-            Effect.provideService(AppFileSystem.Service, fsys),
-            Effect.provideService(Session.Service, sessions)
-          );
-
-          const msg: SchemaMessage.Assistant = {
-            id: SchemaMessage.MessageID.ascending(),
-            parentID: lastUser.id,
-            role: 'assistant',
-            mode: agent.name,
-            agent: agent.name,
-            variant: lastUser.model.variant,
-            cost: 0,
-            tokens: { input: 0, output: 0, reasoning: 0, cache: { read: 0, write: 0 } },
-            modelID: model.id,
-            providerID: model.providerID,
-            time: { created: Date.now() },
-            sessionID
-          };
-          yield* sessions.updateMessage(msg);
-
-          const finalizeInterruptedAssistant = Effect.gen(function* () {
-            if (msg.time.completed) {
-              return;
+            step++;
+            if (step === 1) {
+              yield* title({
+                session,
+                modelID: lastUser.model.modelID,
+                providerID: lastUser.model.providerID,
+                history: msgs
+              }).pipe(Effect.ignore, Effect.forkIn(scope));
             }
-            msg.error ??= SchemaMessage.fromError(new DOMException('Aborted', 'AbortError'), {
-              providerID: msg.providerID,
-              aborted: true
-            });
-            msg.time.completed = Date.now();
-            yield* sessions.updateMessage(msg);
-          });
 
-          const handle = yield* processor
-            .create({
-              assistantMessage: msg,
-              sessionID,
-              model
-            })
-            .pipe(Effect.onInterrupt(() => finalizeInterruptedAssistant));
+            const model = yield* getModel(
+              lastUser.model.providerID,
+              lastUser.model.modelID,
+              sessionID
+            );
+            const task = tasks.pop();
 
-          const outcome: 'break' | 'continue' = yield* Effect.gen(function* () {
-            const lastUserMsg = msgs.findLast(m => m.info.role === 'user');
-            const bypassAgentCheck = lastUserMsg?.parts.some(p => p.type === 'agent') ?? false;
+            if (task?.type === 'subtask') {
+              yield* handleSubtask({ task, model, lastUser, sessionID, session, msgs });
+              continue;
+            }
 
-            const tools = yield* resolveTools({
-              agent,
-              session,
-              model,
-              tools: lastUser.tools,
-              processor: handle,
-              bypassAgentCheck,
-              messages: msgs
-            });
-
-            if (lastUser.format?.type === 'json_schema') {
-              tools['StructuredOutput'] = createStructuredOutputTool({
-                schema: lastUser.format.schema,
-                onSuccess(output) {
-                  structured = output;
-                }
+            if (task?.type === 'compaction') {
+              const result = yield* compaction.process({
+                messages: msgs,
+                parentID: lastUser.id,
+                sessionID,
+                auto: task.auto,
+                overflow: task.overflow
               });
-            }
-
-            if (step > 1 && lastFinished) {
-              for (const m of msgs) {
-                if (m.info.role !== 'user' || m.info.id <= lastFinished.id) {
-                  continue;
-                }
-                for (const p of m.parts) {
-                  if (p.type !== 'text' || p.ignored || p.synthetic) {
-                    continue;
-                  }
-                  if (!p.text.trim()) {
-                    continue;
-                  }
-                  p.text = [
-                    '<system-reminder>',
-                    'The user sent the following message:',
-                    p.text,
-                    '',
-                    'Please address this message and continue with your tasks.',
-                    '</system-reminder>'
-                  ].join('\n');
-                }
+              if (result === 'stop') {
+                break;
               }
+              continue;
             }
 
-            const [skills, env, instructions, modelMsgs] = yield* Effect.all([
-              sys.skills(agent),
-              sys.environment(model),
-              instruction.system().pipe(Effect.orDie),
-              Message.toModelMessagesEffect(msgs, model)
-            ]);
-            const system = [...env, ...instructions, ...(skills ? [skills] : [])];
-            const format = lastUser.format ?? { type: 'text' as const };
-            if (format.type === 'json_schema') {
-              system.push(STRUCTURED_OUTPUT_SYSTEM_PROMPT);
-            }
-            const result = yield* handle.process({
-              user: lastUser,
-              agent,
-              permission: session.permission,
-              sessionID,
-              parentSessionID: session.parentID,
-              system,
-              messages: [
-                ...modelMsgs,
-                ...(isLastStep ? [{ role: 'assistant' as const, content: MAX_STEPS }] : [])
-              ],
-              tools,
-              model,
-              toolChoice: format.type === 'json_schema' ? 'required' : void 0
-            });
-
-            if (structured !== void 0) {
-              handle.message.structured = structured;
-              handle.message.finish = handle.message.finish ?? 'stop';
-              yield* sessions.updateMessage(handle.message);
-              return 'break' as const;
-            }
-
-            const finished =
-              handle.message.finish && !['tool-calls', 'unknown'].includes(handle.message.finish);
-            if (finished && !handle.message.error) {
-              if (format.type === 'json_schema') {
-                handle.message.error = new SchemaMessage.StructuredOutputError({
-                  message: 'Model did not produce structured output',
-                  retries: 0
-                }).toObject();
-                yield* sessions.updateMessage(handle.message);
-                return 'break' as const;
-              }
-            }
-
-            if (result === 'stop') {
-              return 'break' as const;
-            }
-            if (result === 'compact') {
+            if (
+              lastFinished &&
+              lastFinished.summary !== true &&
+              (yield* compaction.isOverflow({ tokens: lastFinished.tokens, model }))
+            ) {
               yield* compaction.create({
                 sessionID,
                 agent: lastUser.agent,
                 model: lastUser.model,
-                auto: true,
-                overflow: !handle.message.finish
+                auto: true
               });
+              continue;
             }
-            return 'continue' as const;
-          }).pipe(
-            Effect.ensuring(instruction.clear(handle.message.id)),
-            Effect.onInterrupt(() => finalizeInterruptedAssistant)
-          );
-          if (outcome === 'break') {
-            break;
-          }
-        }
 
-        yield* compaction.prune({ sessionID }).pipe(Effect.ignore, Effect.forkIn(scope));
-        return yield* lastAssistant(sessionID);
-      }, Effect.orDie);
+            const agent = yield* agents.get(lastUser.agent);
+            if (!agent) {
+              const available = (yield* agents.list()).filter(a => !a.hidden).map(a => a.name);
+              const hint = available.length ? ` Available agents: ${available.join(', ')}` : '';
+              const error = new NamedError.Unknown({
+                message: `Agent not found: "${lastUser.agent}".${hint}`
+              });
+              yield* event.publish(SchemaSession.Events.Error, {
+                sessionID,
+                error: error.toObject()
+              });
+              throw error;
+            }
+            const maxSteps = agent.steps ?? Infinity;
+            const isLastStep = step >= maxSteps;
+            msgs = yield* SessionReminder.apply({ messages: msgs, agent, session }).pipe(
+              Effect.provideService(AppFileSystem.Service, fsys),
+              Effect.provideService(Session.Service, sessions)
+            );
+
+            const msg: SchemaMessage.Assistant = {
+              id: SchemaMessage.MessageID.ascending(),
+              parentID: lastUser.id,
+              role: 'assistant',
+              mode: agent.name,
+              agent: agent.name,
+              variant: lastUser.model.variant,
+              cost: 0,
+              tokens: { input: 0, output: 0, reasoning: 0, cache: { read: 0, write: 0 } },
+              modelID: model.id,
+              providerID: model.providerID,
+              time: { created: Date.now() },
+              sessionID
+            };
+            yield* sessions.updateMessage(msg);
+
+            const finalizeInterruptedAssistant = Effect.gen(function* () {
+              if (msg.time.completed) {
+                return;
+              }
+              msg.error ??= SchemaMessage.fromError(new DOMException('Aborted', 'AbortError'), {
+                providerID: msg.providerID,
+                aborted: true
+              });
+              msg.time.completed = Date.now();
+              yield* sessions.updateMessage(msg);
+            });
+
+            const handle = yield* processor
+              .create({
+                assistantMessage: msg,
+                sessionID,
+                model
+              })
+              .pipe(Effect.onInterrupt(() => finalizeInterruptedAssistant));
+
+            const outcome: 'break' | 'continue' = yield* Effect.gen(function* () {
+              const lastUserMsg = msgs.findLast(m => m.info.role === 'user');
+              const bypassAgentCheck = lastUserMsg?.parts.some(p => p.type === 'agent') ?? false;
+
+              const tools = yield* resolveTools({
+                agent,
+                session,
+                model,
+                tools: lastUser.tools,
+                processor: handle,
+                bypassAgentCheck,
+                messages: msgs
+              });
+
+              if (lastUser.format?.type === 'json_schema') {
+                tools['StructuredOutput'] = createStructuredOutputTool({
+                  schema: lastUser.format.schema,
+                  onSuccess(output) {
+                    structured = output;
+                  }
+                });
+              }
+
+              if (step > 1 && lastFinished) {
+                for (const m of msgs) {
+                  if (m.info.role !== 'user' || m.info.id <= lastFinished.id) {
+                    continue;
+                  }
+                  for (const p of m.parts) {
+                    if (p.type !== 'text' || p.ignored || p.synthetic) {
+                      continue;
+                    }
+                    if (!p.text.trim()) {
+                      continue;
+                    }
+                    p.text = [
+                      '<system-reminder>',
+                      'The user sent the following message:',
+                      p.text,
+                      '',
+                      'Please address this message and continue with your tasks.',
+                      '</system-reminder>'
+                    ].join('\n');
+                  }
+                }
+              }
+
+              const [skills, env, instructions, modelMsgs] = yield* Effect.all([
+                sys.skills(agent),
+                sys.environment(model),
+                instruction.system().pipe(Effect.orDie),
+                Message.toModelMessagesEffect(msgs, model)
+              ]);
+              const system = [...env, ...instructions, ...(skills ? [skills] : [])];
+              const format = lastUser.format ?? { type: 'text' as const };
+              if (format.type === 'json_schema') {
+                system.push(STRUCTURED_OUTPUT_SYSTEM_PROMPT);
+              }
+              const result = yield* handle.process({
+                user: lastUser,
+                agent,
+                permission: session.permission,
+                sessionID,
+                parentSessionID: session.parentID,
+                system,
+                messages: [
+                  ...modelMsgs,
+                  ...(isLastStep ? [{ role: 'assistant' as const, content: MAX_STEPS }] : [])
+                ],
+                tools,
+                model,
+                toolChoice: format.type === 'json_schema' ? 'required' : void 0
+              });
+
+              if (structured !== void 0) {
+                handle.message.structured = structured;
+                handle.message.finish = handle.message.finish ?? 'stop';
+                yield* sessions.updateMessage(handle.message);
+                return 'break' as const;
+              }
+
+              const finished =
+                handle.message.finish && !['tool-calls', 'unknown'].includes(handle.message.finish);
+              if (finished && !handle.message.error) {
+                if (format.type === 'json_schema') {
+                  handle.message.error = new SchemaMessage.StructuredOutputError({
+                    message: 'Model did not produce structured output',
+                    retries: 0
+                  }).toObject();
+                  yield* sessions.updateMessage(handle.message);
+                  return 'break' as const;
+                }
+              }
+
+              if (result === 'stop') {
+                return 'break' as const;
+              }
+              if (result === 'compact') {
+                yield* compaction.create({
+                  sessionID,
+                  agent: lastUser.agent,
+                  model: lastUser.model,
+                  auto: true,
+                  overflow: !handle.message.finish
+                });
+              }
+              return 'continue' as const;
+            }).pipe(
+              Effect.ensuring(instruction.clear(handle.message.id)),
+              Effect.onInterrupt(() => finalizeInterruptedAssistant)
+            );
+            if (outcome === 'break') {
+              break;
+            }
+          }
+
+          yield* compaction.prune({ sessionID }).pipe(Effect.ignore, Effect.forkIn(scope));
+          return yield* lastAssistant(sessionID);
+        },
+        Effect.provideService(Database.Service, database)
+      );
 
     const loop: (input: SchemaSession.LoopInput) => Effect.Effect<SchemaMessage.WithParts> =
       Effect.fn('SessionPrompt.loop')(function* (input: SchemaSession.LoopInput) {
@@ -1864,6 +1869,7 @@ export const node = LayerNode.make({
     Instruction.node,
     SessionRunState.node,
     SystemPrompt.node,
-    LLM.node
+    LLM.node,
+    Database.node
   ]
 });

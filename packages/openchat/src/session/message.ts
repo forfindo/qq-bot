@@ -1,7 +1,6 @@
 import { SchemaMessage, SchemaProvider, type SchemaSession } from '@/schema';
 import { Effect } from 'effect';
 import { Database } from '@/database';
-import { LayerNode } from '@/runtime';
 import { and, desc, eq, inArray, lt, or } from 'drizzle-orm';
 import { MessageTable, PartTable, SessionTable } from '@/database/sql/session.sql';
 import { NotFoundError } from '@/storage/storage';
@@ -498,12 +497,13 @@ export const toModelMessagesEffect = Effect.fnUntraced(function* (
 });
 
 export const stream = Effect.fnUntraced(function* (sessionID: SchemaSession.SessionID) {
+  const database = yield* Database.Service;
   const size = 50;
   const result = [] as SchemaMessage.WithParts[];
   let before: string | undefined;
   while (true) {
     const next = yield* page({ sessionID, limit: size, before }).pipe(
-      Effect.provide(LayerNode.compile(Database.node)),
+      Effect.provideService(Database.Service, database),
       Effect.catchIf(
         (e): e is NotFoundError => NotFoundError.isInstance(e),
         () =>
