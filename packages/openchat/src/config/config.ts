@@ -299,14 +299,15 @@ const layer = Layer.effect(
 
           const dep = yield* npmSvc.install(dir).pipe(
             Effect.exit,
-            Effect.tap(exit =>
-              Exit.isFailure(exit)
-                ? Effect.logWarning('background dependency install failed', {
-                    dir,
-                    error: String(exit.cause)
-                  })
-                : Effect.void
-            ),
+            Effect.tap(exit => {
+              if (Exit.isFailure(exit)) {
+                log.warn('background dependency install failed', {
+                  dir,
+                  error: String(exit.cause)
+                });
+              }
+              return Effect.void;
+            }),
             Effect.asVoid,
             Effect.forkDetach
           );

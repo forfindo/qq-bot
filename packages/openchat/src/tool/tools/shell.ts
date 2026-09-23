@@ -446,7 +446,7 @@ export const ShellTool = define(
         if (cmd && (FILES.has(cmd) || (shellKind === 'cmd' && CMD_FILES.has(cmd)))) {
           for (const arg of pathArgs(command, ps, shellKind === 'cmd')) {
             const resolved = yield* argPath(arg, cwd, ps, shell);
-            yield* Effect.logInfo('resolved path', { arg, resolved });
+            log.info('resolved path', { arg, resolved });
             if (!resolved || AppFileSystem.contains(resolved, directory)) {
               continue;
             }

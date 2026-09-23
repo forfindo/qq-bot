@@ -7,7 +7,7 @@ import { BackgroundJob } from '@/background';
 import { SessionTable, PartTable } from '@/database/sql/session.sql';
 import { and, desc, eq, gte, isNull, like } from 'drizzle-orm';
 import { InstallationVersion } from '@/installation/version';
-import { Slug } from '@/utils';
+import { Log, Slug } from '@/utils';
 import * as MessageSender from './message-sender';
 import * as Message from './message';
 import { InstanceContext } from '@/instance';
@@ -15,6 +15,8 @@ import type { LanguageModelUsage } from 'ai';
 import Decimal from 'decimal.js';
 import path from 'path';
 import { LayerNode } from '@/runtime';
+
+const log = Log.create({ service: 'session' });
 
 export type NotFound = NotFoundError;
 
@@ -225,6 +227,7 @@ const cancelBackgroundJobs = Effect.fn('Session.cancelBackgroundJobs')(function*
 export interface Interface {
   readonly list: (input?: ListInput) => Effect.Effect<SchemaSession.SessionInfo[]>;
   readonly create: (input?: {
+    id?: SchemaSession.SessionID;
     parentID?: SchemaSession.SessionID;
     title?: string;
     agent?: string;
@@ -403,7 +406,7 @@ const layer = Layer.effect(
           updated: Date.now()
         }
       };
-      yield* Effect.logInfo('created', result);
+      log.info('created', result);
       yield* bus.publish(SchemaSession.Events.Created, { sessionID: result.id, info: result });
       return result;
     });
@@ -439,6 +442,7 @@ const layer = Layer.effect(
     });
 
     const create = Effect.fn('Session.create')(function* (input?: {
+      id?: SchemaSession.SessionID;
       parentID?: SchemaSession.SessionID;
       title?: string;
       agent?: string;
@@ -447,6 +451,7 @@ const layer = Layer.effect(
       permission?: SchemaPermission.Ruleset;
     }) {
       return yield* createNext({
+        id: input?.id,
         ownerID: sender.channelInfo?.channelID ?? sender.source!.uid,
         parentID: input?.parentID,
         title: input?.title,
@@ -683,7 +688,7 @@ const layer = Layer.effect(
         // TODO
         // yield* bus.remove(sessionID)
       } catch (error) {
-        yield* Effect.logError('failed to remove session', { sessionID, error });
+        log.error('failed to remove session', { sessionID, error });
       }
     });
 

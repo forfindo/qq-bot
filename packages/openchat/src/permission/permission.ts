@@ -4,9 +4,10 @@ import os from 'os';
 import { Context, Deferred, Effect, Layer } from 'effect';
 import { Event } from '@/event';
 import { ServiceState } from '@/instance';
-import { Wildcard } from '@/utils';
+import { Log, Wildcard } from '@/utils';
 import { LayerNode } from '@/runtime';
 
+const log = Log.create({ service: 'permission' });
 const EDIT_TOOLS = ['edit', 'write', 'apply_patch'];
 
 const expand = (pattern: string): string => {
@@ -125,7 +126,7 @@ const layer = Layer.effect(
 
       for (const pattern of request.patterns) {
         const rule = evaluate(request.permission, pattern, ruleset, approved);
-        yield* Effect.logInfo('evaluated', {
+        log.info('evaluated', {
           permission: request.permission,
           pattern,
           action: rule
@@ -155,7 +156,7 @@ const layer = Layer.effect(
         always: request.always,
         tool: request.tool
       };
-      yield* Effect.logInfo('asking', { id, permission: info.permission, patterns: info.patterns });
+      log.info('asking', { id, permission: info.permission, patterns: info.patterns });
 
       const deferred = yield* Deferred.make<
         void,
