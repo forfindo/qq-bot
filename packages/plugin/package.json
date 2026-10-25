@@ -1,5 +1,5 @@
 {
-  "name": "@openbot/plugin",
+  "name": "@xopenbot/plugin",
   "version": "0.0.1",
   "description": "",
   "main": "src/index.ts",

@@ -12,6 +12,9 @@
     },
     {
       "path": "./packages/openchat"
+    },
+    {
+      "path": "./packages/plugin"
     }
   ],
   "files": []
