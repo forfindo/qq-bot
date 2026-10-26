@@ -1,4 +1,4 @@
-# @openbot/plugin
+# @xopenbot/plugin
 
 openbot 的插件工作区。它负责插件的加载、命令注册、消息匹配与分发，以及插件卸载。
 

@@ -1,4 +1,5 @@
 import type { Part } from '@/message-part';
+import { mergeObject } from '@/utils/merge';
 
 export interface PluginInfo {
   name: string;
@@ -15,12 +16,18 @@ export interface Command {
   name: string;
   pattern: string | RegExp;
   priority: number;
-  execute: (input: string, args?: string[]) => ExecResult | undefined;
+  execute: (
+    input: string,
+    ctx: { [key: string]: unknown },
+    args?: string[]
+  ) => Promise<ExecResult | undefined> | ExecResult | undefined;
 }
 
 export interface IPlugin {
   info: PluginInfo;
   load(): Command[];
+  /** 插件可以定义init方法返回一些API，这些API会放到每个插件调用时的ctx **/
+  init?: () => { [key: string]: unknown };
 }
 
 export interface ProcessResult {
@@ -40,6 +47,8 @@ export interface RegistryResult {
 class PluginWorkspace {
   private plugins: (Omit<IPlugin, 'load'> & { loadTime: number })[] = [];
   private commands: (Command & { plugin: string })[] = [];
+  /** 根据插件名字 **/
+  private apis: { [key: string]: { [key: string]: unknown } } = {};
 
   registry(plugin: IPlugin): RegistryResult;
   registry(plugins: IPlugin[]): RegistryResult;
@@ -54,7 +63,12 @@ class PluginWorkspace {
     }
     plugins.forEach(plugin => {
       try {
+        const apis = plugin?.init?.();
         const commands = plugin.load();
+        this.deregister(plugin.info.name);
+        if (apis) {
+          this.apis[plugin.info.name] = apis;
+        }
         this.plugins.push({
           info: plugin.info,
           loadTime: Date.now()
@@ -88,9 +102,9 @@ class PluginWorkspace {
     return result;
   }
 
-  process(input: string): ProcessResult[] {
+  async process(input: string, ctx: { [key: string]: unknown }) {
     const processResult: ProcessResult[] = [];
-
+    const initApis = mergeObject(...Object.values(this.apis));
     for (const command of this.commands) {
       if (typeof command.pattern === 'string') {
         command.pattern = new RegExp(command.pattern);
@@ -98,7 +112,14 @@ class PluginWorkspace {
       const result = input.match(command.pattern);
       if (result) {
         const prefix = result[0];
-        const execRst = command.execute(input.substring(prefix.length).trim(), result.slice(1));
+        const execRst = await command.execute(
+          input.substring(prefix.length).trim(),
+          {
+            ...initApis,
+            ...ctx
+          },
+          result.slice(1)
+        );
         if (execRst?.content?.length) {
           processResult.push({
             plugin: command.plugin,
@@ -117,6 +138,7 @@ class PluginWorkspace {
   deregister(pluginName: string) {
     this.plugins = this.plugins.filter(item => item.info.name !== pluginName);
     this.commands = this.commands.filter(item => item.plugin !== pluginName);
+    Reflect.deleteProperty(this.apis, pluginName);
   }
 
   listPlugin() {
