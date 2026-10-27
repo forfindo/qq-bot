@@ -16,11 +16,11 @@ export function mergeObject(...sources: Record<string, unknown>[]) {
     return {};
   }
   if (sources.length === 1) {
-    return structuredClone(sources[0]!);
+    return { ...sources[0]! };
   }
 
   // 循环依次合并
-  let acc = structuredClone(sources[0]!);
+  let acc = { ...sources[0]! };
   for (let i = 1; i < sources.length; i++) {
     acc = mergeTwo(acc, sources[i]!);
   }
