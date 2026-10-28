@@ -1,66 +1,78 @@
-import type { Part } from '@/message-part';
 import { mergeObject } from '@/utils/merge';
+import { cancelJob, type Job, scheduleJob } from 'node-schedule';
+import type {
+  Command,
+  IPlugin,
+  LikeLogger,
+  ProcessResult,
+  RegistryResult,
+  ScheduleTask
+} from '@/types/workspace';
 
-export interface PluginInfo {
-  name: string;
-  version: string;
-  description: string;
-}
-
-export interface ExecResult {
-  next?: boolean;
-  content?: Part[];
-}
-
-export interface Command {
-  name: string;
-  pattern: string | RegExp;
-  priority: number;
-  execute: (
-    input: string,
-    ctx: { [key: string]: unknown },
-    args?: string[]
-  ) => Promise<ExecResult | undefined> | ExecResult | undefined;
-}
-
-export interface IPlugin {
-  info: PluginInfo;
-  load(): Command[];
-  /** 插件可以定义init方法返回一些API，这些API会放到每个插件调用时的ctx **/
-  init?: () => { [key: string]: unknown };
-}
-
-export interface ProcessResult {
-  plugin: string;
-  name: string;
-  content?: Part[];
-}
-
-export interface RegistryResult {
-  ok: boolean;
-  failure?: {
-    name: string;
-    error: string;
-  }[];
-}
-
-class PluginWorkspace {
+export class Workspace {
   private plugins: (Omit<IPlugin, 'load'> & { loadTime: number })[] = [];
   private commands: (Command & { plugin: string })[] = [];
   /** 根据插件名字 **/
   private apis: { [key: string]: { [key: string]: unknown } } = {};
+  /** 定时任务列表 **/
+  private tasks: (ScheduleTask & { plugin: string })[] = [];
+  private runningTask: Job[] = [];
+  private logger: LikeLogger;
 
-  registry(plugin: IPlugin): RegistryResult;
-  registry(plugins: IPlugin[]): RegistryResult;
+  constructor(logger: LikeLogger = console) {
+    this.logger = logger;
+  }
 
-  registry(plugins: IPlugin | IPlugin[]): RegistryResult {
+  private addSchedule(task: (typeof this.tasks)[number]) {
+    const existing = this.tasks.find(
+      item => item.plugin === task.plugin && item.name === task.name
+    );
+    if (existing) {
+      return;
+    }
+    this.tasks.push(task);
+    const job = scheduleJob(`${task.plugin}_${task.name}`, task.cron, async (fireDate: Date) => {
+      try {
+        const success = await task.task(fireDate);
+        if (success) {
+          this.logger.info(`定时任务 ${task.plugin}_${task.name} 执行成功`);
+        } else {
+          this.logger.error(`定时任务 ${task.plugin}_${task.name} 执行失败`);
+        }
+      } catch (e) {
+        this.logger.error(
+          `定时任务 ${task.plugin}_${task.name} 执行失败。${e instanceof Error ? e.message : String(e)}`
+        );
+      }
+    });
+    if (job) {
+      this.runningTask.push(job);
+    } else {
+      this.logger.error(`定时任务 ${task.name} cron 表达式非法: ${task.cron}`);
+    }
+  }
+
+  private cancelSchedule(task: (typeof this.tasks)[number]): void {
+    const existingIndex = this.tasks.findIndex(
+      item => item.plugin === task.plugin && item.name === task.name
+    );
+    const jobIndex = this.runningTask.findIndex(
+      item => item.name === `${task.plugin}_${task.name}`
+    );
+    if (jobIndex >= 0) {
+      cancelJob(this.runningTask[jobIndex]!);
+      this.runningTask.splice(jobIndex, 1);
+    }
+    if (existingIndex >= 0) {
+      this.tasks.splice(existingIndex, 1);
+    }
+  }
+
+  registry(...plugins: IPlugin[]): RegistryResult {
     const result: RegistryResult = {
       ok: true,
       failure: []
     };
-    if (!Array.isArray(plugins)) {
-      plugins = [plugins];
-    }
     plugins.forEach(plugin => {
       try {
         const apis = plugin?.init?.();
@@ -91,6 +103,13 @@ class PluginWorkspace {
           })
         );
         this.commands.sort((c1, c2) => c1.priority - c2.priority);
+        const pluginTask = plugin?.getScheduleTask?.()?.map(item => ({
+          ...item,
+          plugin: plugin.info.name
+        }));
+        pluginTask?.forEach(task => {
+          this.addSchedule(task);
+        });
       } catch (e) {
         result.ok = false;
         result.failure!.push({
@@ -138,6 +157,8 @@ class PluginWorkspace {
   deregister(pluginName: string) {
     this.plugins = this.plugins.filter(item => item.info.name !== pluginName);
     this.commands = this.commands.filter(item => item.plugin !== pluginName);
+    const removed = this.tasks.filter(item => item.plugin === pluginName);
+    removed.forEach(item => this.cancelSchedule(item));
     Reflect.deleteProperty(this.apis, pluginName);
   }
 
@@ -145,5 +166,3 @@ class PluginWorkspace {
     return this.plugins;
   }
 }
-
-export const Workspace = new PluginWorkspace();

@@ -3,8 +3,10 @@ export type {
   Command,
   ExecResult,
   IPlugin,
+  LikeLogger,
   PluginInfo,
   ProcessResult,
-  RegistryResult
-} from './workspace';
-export type { Image, Part, Text } from './message-part';
+  RegistryResult,
+  ScheduleTask
+} from './types/workspace';
+export type { Image, Part, Text } from './types/message-part';
