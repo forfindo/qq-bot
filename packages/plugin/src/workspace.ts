@@ -4,22 +4,36 @@ import type {
   Command,
   IPlugin,
   LikeLogger,
+  ListenerCallback,
+  PluginContext,
+  PluginInfo,
   ProcessResult,
   RegistryResult,
   ScheduleTask
 } from '@/types/workspace';
 
+function normalizePattern(pattern: string | RegExp): RegExp {
+  if (typeof pattern === 'string') {
+    return new RegExp(pattern.startsWith('^') ? pattern : '^' + pattern);
+  }
+  return pattern.source.startsWith('^') ? pattern : new RegExp('^' + pattern.source, pattern.flags);
+}
+
 export class Workspace {
-  private plugins: (Omit<IPlugin, 'load'> & { loadTime: number })[] = [];
+  private plugins: (PluginInfo & { loadTime: number })[] = [];
   private commands: (Command & { plugin: string })[] = [];
   /** 根据插件名字 **/
   private apis: { [key: string]: { [key: string]: unknown } } = {};
   /** 定时任务列表 **/
   private tasks: (ScheduleTask & { plugin: string })[] = [];
   private runningTask: Job[] = [];
-  private logger: LikeLogger;
+  private states: Record<string, Record<string, unknown>> = {};
+  private listeners: Record<string, ListenerCallback[]> = {};
+  private readonly logger: LikeLogger;
+  private readonly bot: unknown;
 
-  constructor(logger: LikeLogger = console) {
+  constructor(bot: unknown, logger: LikeLogger = console) {
+    this.bot = bot;
     this.logger = logger;
   }
 
@@ -30,7 +44,7 @@ export class Workspace {
     if (existing) {
       return;
     }
-    this.tasks.push(task);
+
     const job = scheduleJob(`${task.plugin}_${task.name}`, task.cron, async (fireDate: Date) => {
       try {
         const success = await task.task(fireDate);
@@ -45,11 +59,14 @@ export class Workspace {
         );
       }
     });
-    if (job) {
-      this.runningTask.push(job);
-    } else {
+
+    if (!job) {
       this.logger.error(`定时任务 ${task.name} cron 表达式非法: ${task.cron}`);
+      return;
     }
+
+    this.tasks.push(task);
+    this.runningTask.push(job);
   }
 
   private cancelSchedule(task: (typeof this.tasks)[number]): void {
@@ -68,56 +85,69 @@ export class Workspace {
     }
   }
 
-  registry(...plugins: IPlugin[]): RegistryResult {
+  private async load(plugin: IPlugin) {
+    const name = plugin.info.name;
+    try {
+      // —— 准备阶段：只计算、不碰 this.*，任何抛错都安全 ——
+      const state: Record<string, unknown> = {};
+      const ctx: PluginContext = { logger: this.logger, bot: this.bot, state };
+
+      const apis = await plugin.init?.(ctx);
+      const commands = (await plugin.loadCommand(ctx)).map(item => ({
+        plugin: name,
+        ...item,
+        pattern: normalizePattern(item.pattern)
+      }));
+      const tasks = ((await plugin.loadSchedule?.(ctx)) ?? []).map(item => ({
+        ...item,
+        plugin: name
+      }));
+      const listeners = await plugin.loadListener?.(ctx);
+
+      // —— 提交阶段：下面全是无抛错的纯内存操作 ——
+      this.deregister(name);
+      this.states[name] = state;
+      if (apis) {
+        this.apis[name] = apis;
+      }
+      this.plugins.push({
+        ...plugin.info,
+        loadTime: Date.now()
+      });
+      this.commands.push(...commands);
+      this.commands.sort((c1, c2) => c1.priority - c2.priority);
+      for (const task of tasks) {
+        this.addSchedule(task);
+      }
+      if (listeners) {
+        for (const event of Object.keys(listeners)) {
+          if (this.listeners[event]) {
+            this.listeners[event].push(listeners[event]!);
+          } else {
+            this.listeners[event] = [listeners[event]!];
+          }
+        }
+      }
+    } catch (e) {
+      return {
+        name,
+        error: String(e)
+      };
+    }
+  }
+
+  async registry(...plugins: IPlugin[]): Promise<RegistryResult> {
     const result: RegistryResult = {
       ok: true,
       failure: []
     };
-    plugins.forEach(plugin => {
-      try {
-        const apis = plugin?.init?.();
-        const commands = plugin.load();
-        this.deregister(plugin.info.name);
-        if (apis) {
-          this.apis[plugin.info.name] = apis;
-        }
-        this.plugins.push({
-          info: plugin.info,
-          loadTime: Date.now()
-        });
-        this.commands.push(
-          ...commands.map(item => {
-            const result = {
-              plugin: plugin.info.name,
-              ...item
-            };
-            if (typeof result.pattern === 'string') {
-              if (!result.pattern.startsWith('^')) {
-                result.pattern = '^' + result.pattern;
-              }
-              result.pattern = new RegExp(result.pattern);
-            } else if (!result.pattern.source.startsWith('^')) {
-              result.pattern = new RegExp('^' + result.pattern.source, result.pattern.flags);
-            }
-            return result;
-          })
-        );
-        this.commands.sort((c1, c2) => c1.priority - c2.priority);
-        const pluginTask = plugin?.getScheduleTask?.()?.map(item => ({
-          ...item,
-          plugin: plugin.info.name
-        }));
-        pluginTask?.forEach(task => {
-          this.addSchedule(task);
-        });
-      } catch (e) {
+    for (const plugin of plugins) {
+      const errors = await this.load(plugin);
+      if (errors) {
         result.ok = false;
-        result.failure!.push({
-          name: plugin.info.name,
-          error: String(e)
-        });
+        result.failure!.push(errors);
       }
-    });
+    }
     return result;
   }
 
@@ -125,9 +155,6 @@ export class Workspace {
     const processResult: ProcessResult[] = [];
     const initApis = mergeObject(...Object.values(this.apis));
     for (const command of this.commands) {
-      if (typeof command.pattern === 'string') {
-        command.pattern = new RegExp(command.pattern);
-      }
       const result = input.match(command.pattern);
       if (result) {
         const prefix = result[0];
@@ -135,7 +162,10 @@ export class Workspace {
           input.substring(prefix.length).trim(),
           {
             ...initApis,
-            ...ctx
+            ...ctx,
+            logger: this.logger,
+            bot: this.bot,
+            state: this.states[command.plugin] || {}
           },
           result.slice(1)
         );
@@ -155,11 +185,12 @@ export class Workspace {
   }
 
   deregister(pluginName: string) {
-    this.plugins = this.plugins.filter(item => item.info.name !== pluginName);
+    this.plugins = this.plugins.filter(item => item.name !== pluginName);
     this.commands = this.commands.filter(item => item.plugin !== pluginName);
     const removed = this.tasks.filter(item => item.plugin === pluginName);
     removed.forEach(item => this.cancelSchedule(item));
     Reflect.deleteProperty(this.apis, pluginName);
+    Reflect.deleteProperty(this.states, pluginName);
   }
 
   listPlugin() {

@@ -25,18 +25,32 @@ export interface Command {
   priority: number;
   execute: (
     input: string,
-    ctx: { [key: string]: unknown },
+    ctx: PluginContext,
     args?: string[]
   ) => Promise<ExecResult | undefined> | ExecResult | undefined;
 }
 
+export type ListenerCallback = (ctx: PluginContext) => void | Promise<void>;
+
 export interface IPlugin {
   info: PluginInfo;
-  load(): Command[];
   /** 插件可以定义init方法返回一些API，这些API会放到每个插件调用时的ctx **/
-  init?: () => { [key: string]: unknown };
+  init?: (ctx: PluginContext) => { [key: string]: unknown } | Promise<{ [key: string]: unknown }>;
+  /** 命令 **/
+  loadCommand(ctx: PluginContext): Command[] | Promise<Command[]>;
   /** 定时任务 **/
-  getScheduleTask?: () => ScheduleTask[];
+  loadSchedule?(ctx: PluginContext): ScheduleTask[] | Promise<ScheduleTask[]>;
+  /** 事件监听 **/
+  loadListener?(
+    ctx: PluginContext
+  ): Record<string, ListenerCallback> | Promise<Record<string, ListenerCallback>>;
+}
+
+export interface PluginContext {
+  logger: LikeLogger;
+  bot: unknown;
+  state: Record<string, unknown>;
+  [key: string]: unknown;
 }
 
 export interface ProcessResult {
