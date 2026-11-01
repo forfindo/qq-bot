@@ -61,7 +61,9 @@ export default defineConfig(
     ...tseslint.configs.disableTypeChecked
   },
   {
-    ignores: ['dist/', 'node_modules/']
+    // sandbox.code.js 是交给 vm.runInContext 执行的脚本（非模块、非严格模式），
+    // 且其中部分标识符只在 vm 内通过字符串调用（如 contextify），不适用常规 lint
+    ignores: ['dist/', 'node_modules/', 'packages/sandbox/src/sandbox.code.js']
   },
   {
     rules: {

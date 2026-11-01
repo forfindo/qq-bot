@@ -2,16 +2,28 @@
   "name": "@xopenbot/bot",
   "version": "0.0.1",
   "description": "",
-  "module": "index.js",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
   "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist/**",
+    "package.json",
+    "src/onebot/README.md"
+  ],
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "rollup -c"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "packageManager": "pnpm@10.30.3",
-  "dependencies": {
-    "@xopenbot/plugin": "workspace:*"
-  }
+  "packageManager": "pnpm@10.30.3"
 }
