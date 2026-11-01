@@ -129,6 +129,7 @@ export class Workspace {
         }
       }
     } catch (e) {
+      this.logger.warn(`插件 ${name} 加载失败，reason：${String(e)}`);
       return {
         name,
         error: String(e)
