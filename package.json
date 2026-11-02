@@ -30,6 +30,7 @@
     "@rollup/plugin-alias": "6.0.0",
     "@rollup/plugin-node-resolve": "16.0.3",
     "@types/node": "25.5.0",
+    "@types/node-schedule": "2.1.8",
     "eslint": "10.5.0",
     "eslint-config-prettier": "10.1.8",
     "eslint-plugin-unicorn": "67.0.0",

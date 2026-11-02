@@ -55,22 +55,19 @@ export type RequestEvent = NonMetaEventBase<'request', string> & Record<string, 
  * 可以指定 `type` 和 `detail_type` 得到更精确的定义：
  *
  * ```ts
- * type QqGroupFileUploadEvent = ExtendedEventOf<'notice', 'qq.group_file_upload'> & {
+ * type QqGroupFileUploadEvent = ExtendedEvent<'notice', 'qq.group_file_upload'> & {
  *   group_id: string;
  *   file_id: string;
  * };
  * ```
  */
-export type ExtendedEventOf<
-  T extends EventType = EventType,
-  D extends `${string}.${string}` = `${string}.${string}`
-> = EventBase<T, D> & {
+export type ExtendedEvent<T extends EventType = EventType, D extends string = string> = EventBase<
+  T,
+  D
+> & {
   self?: Self;
   [key: string]: unknown;
 };
-
-/** 未指定具体类型的扩展事件 */
-export type ExtendedEvent = ExtendedEventOf;
 
 /** 所有标准事件与扩展事件的联合类型 */
 export type OneBotEvent = MetaEvent | MessageEvent | NoticeEvent | RequestEvent | ExtendedEvent;

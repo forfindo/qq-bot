@@ -1,5 +1,5 @@
 // 应用端机器人抽象基类
-export { Bot } from './bot';
+export type { Bot } from './bot';
 
 // OneBot 扩展规则
 export type * from './rules';

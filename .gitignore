@@ -7,6 +7,8 @@ packages/*
 !packages/openchat
 !packages/plugin
 !packages/bot
+!packages/sandbox
+!packages/onebot
 
 /data
 /openchat
