@@ -94,23 +94,15 @@ export interface MessageSegmentMap {
 /** 标准消息段类型 */
 export type SegmentType = keyof MessageSegmentMap;
 
-/** 标准消息段 */
-export type StandardMessageSegment<T extends SegmentType = SegmentType> = {
-  type: T;
-  data: MessageSegmentMap[T];
-};
-
-/** 扩展消息段，类型名建议使用 `<prefix>.<name>` 形式 */
-export type ExtensionMessageSegment = MessageSegment<string>;
-
 /**
- * 任意消息段。
+ * 任意标准或扩展消息段
  *
- * 已知的消息段类型会得到精确的数据类型，其他类型的数据为普通对象。
+ * 条件类型会随 `T` 的联合分发，`T` 为 `SegmentType` 时得到按 `type` 区分的联合，
+ * 从而可以通过 `segment.type` 收窄出对应的 `data` 类型。
  */
-export type MessageSegment<T extends string = SegmentType> = T extends SegmentType
-  ? StandardMessageSegment<T>
-  : { type: T; data: Record<string, unknown> };
-
-/** 任意标准或扩展消息段 */
-export type AnyMessageSegment = StandardMessageSegment | ExtensionMessageSegment;
+export type AnyMessageSegment<T extends SegmentType = SegmentType> = T extends SegmentType
+  ? {
+      type: T;
+      data: MessageSegmentMap[T];
+    }
+  : never;
