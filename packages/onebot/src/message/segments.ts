@@ -100,8 +100,8 @@ export type StandardMessageSegment<T extends SegmentType = SegmentType> = {
   data: MessageSegmentMap[T];
 };
 
-/** 扩展消息段，类型名应使用 `<prefix>.<name>` 形式 */
-export type ExtensionMessageSegment = MessageSegment<`${string}.${string}`>;
+/** 扩展消息段，类型名建议使用 `<prefix>.<name>` 形式 */
+export type ExtensionMessageSegment = MessageSegment<string>;
 
 /**
  * 任意消息段。

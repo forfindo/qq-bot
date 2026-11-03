@@ -50,7 +50,7 @@ export type RequestEvent = NonMetaEventBase<'request', string> & Record<string, 
  * 扩展事件。
  *
  * OneBot 实现可以扩展事件的具体类型（`detail_type`），扩展的类型名建议使用
- * `<prefix>.` 前缀。扩展事件仍须包含事件的基本字段。
+ * `<prefix>.` 前缀。扩展事件建议包含事件的基本字段。
  *
  * 可以指定 `type` 和 `detail_type` 得到更精确的定义：
  *

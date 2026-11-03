@@ -39,8 +39,8 @@ export interface UploadFileDataParams extends Extensible {
 
 /** 以扩展方式上传文件的请求参数 */
 export interface UploadFileExtendedParams {
-  /** 扩展的上传方式，应使用 `<prefix>.<name>` 形式 */
-  type: `${string}.${string}`;
+  /** 扩展的上传方式，建议使用 `<prefix>.<name>` 形式 */
+  type: string;
   name: string;
   /** 文件数据的 SHA256 校验和，全小写 */
   sha256?: string;

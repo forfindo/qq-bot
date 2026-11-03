@@ -32,8 +32,8 @@ export interface SendChannelMessageParams extends SendMessageBase {
 
 /** 发送扩展类型消息的请求参数 */
 export interface SendExtendedMessageParams {
-  /** 扩展的详细类型，应使用 `<prefix>.<name>` 形式 */
-  detail_type: `${string}.${string}`;
+  /** 扩展的详细类型，建议使用 `<prefix>.<name>` 形式 */
+  detail_type: string;
   /** 消息内容 */
   message: Message;
   [key: string]: unknown;
