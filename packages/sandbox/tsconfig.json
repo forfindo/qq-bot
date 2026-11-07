@@ -7,6 +7,7 @@
     "target": "esnext",
     "lib": ["esnext"],
     "types": ["node"],
+    "declaration": true,
     "noUncheckedIndexedAccess": true,
     "strict": true,
     "jsx": "react-jsx",
