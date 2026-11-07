@@ -11,6 +11,7 @@ import type {
   RegistryResult,
   ScheduleTask
 } from '@/types/workspace';
+import type { Bot } from '@xopenbot/onebot';
 
 function normalizePattern(pattern: string | RegExp): RegExp {
   if (typeof pattern === 'string') {
@@ -30,11 +31,11 @@ export class Workspace {
   private states: Record<string, Record<string, unknown>> = {};
   private listeners: Record<string, ListenerCallback[]> = {};
   private readonly logger: LikeLogger;
-  private readonly bot: unknown;
+  private readonly bot: Bot;
 
-  constructor(bot: unknown, logger: LikeLogger = console) {
+  constructor(bot: Bot, logger?: LikeLogger) {
     this.bot = bot;
-    this.logger = logger;
+    this.logger = logger || this.bot.logger || console;
   }
 
   private addSchedule(task: (typeof this.tasks)[number]) {
