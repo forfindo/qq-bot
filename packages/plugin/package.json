@@ -22,6 +22,7 @@
     "access": "public"
   },
   "dependencies": {
-    "node-schedule": "2.1.2"
+    "node-schedule": "2.1.2",
+    "@xopenbot/onebot": "workspace:*"
   }
 }
