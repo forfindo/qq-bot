@@ -67,12 +67,12 @@ const bots = new Map<
 >();
 const buckets: Record<string, { time: number; cnt: number }> = {};
 interface AsyncTaskInfo {
-  end_time?: number;
+  depth: number;
 }
 
 interface AsyncQueueState {
-  start_moment: number;
-  tasks: Map<unknown, AsyncTaskInfo>;
+  tasks: Map<number, AsyncTaskInfo>;
+  current: number | null;
   timer_counts: Map<string, { cnt: number; active: number }>;
   active_timers: number;
 }
@@ -86,14 +86,16 @@ interface TimerEntry {
 const TIMEOUT_MAX = 2 ** 31 - 1;
 const MAX_QUEUE_TIMERS = 64;
 const MAX_ACTIVE_TIMERS = 1024;
+const MAX_ASYNC_DEPTH = 16;
 const async_queue: Record<string, AsyncQueueState> = {};
 const timers = new Map<number, TimerEntry>();
 let timer_seq = 0;
 let active_timer_total = 0;
+let task_seq = 0;
 const UNTRACKED_TASK = Symbol('untracked-task');
 
 const getQueueKey = (data: MessageEvent | NoticeEvent | RequestEvent) => {
-  return [data.self?.user_id, data.group_id, data.user_id].filter(Boolean).join('-');
+  return [data?.self?.user_id, data?.group_id, data?.user_id].filter(Boolean).join('-');
 };
 
 const getEventId = (data: MessageEvent | NoticeEvent | RequestEvent) => {
@@ -113,14 +115,29 @@ const getQueueState = (data: MessageEvent | NoticeEvent | RequestEvent) => {
   let state = async_queue[key];
   if (!state) {
     state = {
-      start_moment: 0,
       tasks: new Map(),
+      current: null,
       timer_counts: new Map(),
       active_timers: 0
     };
     async_queue[key] = state;
   }
   return { key, state };
+};
+
+const cleanupQueueState = (key: string) => {
+  const state = async_queue[key];
+  if (!state) {
+    return;
+  }
+  if (
+    state.tasks.size === 0 &&
+    state.current === null &&
+    state.active_timers === 0 &&
+    state.timer_counts.size === 0
+  ) {
+    delete async_queue[key];
+  }
 };
 
 const releaseTimer = (id: number) => {
@@ -166,9 +183,12 @@ const asyncCallback = (
   callback: (...args: unknown[]) => void,
   argv?: unknown[]
 ) => {
-  const task = async_queue[getQueueKey(env)]?.tasks.get(o);
-  if (task) {
-    task.end_time = Date.now();
+  const key = getQueueKey(env);
+  const state = async_queue[key];
+  const task = typeof o === 'number' ? state?.tasks.get(o) : void 0;
+  const prev_depth = state?.current ?? null;
+  if (state && task) {
+    state.current = task.depth;
   }
   sandbox.setEnv(env);
   const function_name = 'tmp_' + Date.now();
@@ -193,32 +213,24 @@ const asyncCallback = (
     } catch (_) {
       /* empty */
     }
+    if (state && task) {
+      state.current = prev_depth;
+      state.tasks.delete(o as number);
+      cleanupQueueState(key);
+    }
   }
 };
 
-const checkAndAddAsyncQueue = (o: unknown) => {
+const checkAndAddAsyncQueue = () => {
   const data = sandbox.getContext().data as MessageEvent;
   const { state } = getQueueState(data);
-  let endless_flag = false;
-  const start_moment = state.start_moment;
-  for (const [taskKey, v] of state.tasks) {
-    if (v.end_time && Date.now() - v.end_time > 500) {
-      state.tasks.delete(taskKey);
-    } else {
-      endless_flag = true;
-      if (start_moment === 0) {
-        state.start_moment = Date.now();
-      }
-    }
-  }
-  if (!endless_flag) {
-    state.start_moment = 0;
-  }
-  if (state.start_moment > 0 && Date.now() - state.start_moment > 60000) {
-    state.start_moment = 0;
+  const depth = state.current === null ? 0 : state.current + 1;
+  if (depth > MAX_ASYNC_DEPTH) {
     throw new Error('判定为递归调用，中断。');
   }
-  state.tasks.set(o, { end_time: void 0 });
+  const id = ++task_seq;
+  state.tasks.set(id, { depth });
+  return id;
 };
 
 /**
@@ -508,19 +520,15 @@ const temp = {
     params: http.RequestOptions & { body?: unknown },
     callback = () => {}
   ) {
-    checkFrequency();
-    checkAndAddAsyncQueue(this);
     if (typeof url !== 'string') {
       throw new TypeError('url(第一个参数)必须是字符串。');
     }
     if (typeof callback !== 'function') {
       throw new TypeError('callback(第三个参数)必须是函数。');
     }
-    if (typeof params !== 'object') {
+    if (typeof params !== 'object' || params === null) {
       throw new TypeError('params(第二个参数)必须是对象。');
     }
-    const env = sandbox.getContext().data!;
-    const cb = (data: unknown) => asyncCallback(this, env, callback, [data]);
     url = url.trim();
     const protocol = url.substr(0, 5) === 'https' ? https : http;
     const data: Uint8Array<ArrayBufferLike>[] = [];
@@ -536,6 +544,10 @@ const temp = {
     Object.assign(headers, { 'accept-encoding': 'gzip' });
     const body = options?.body;
     delete options.body;
+    checkFrequency();
+    const taskId = checkAndAddAsyncQueue();
+    const env = sandbox.getContext().data!;
+    const cb = (data: unknown) => asyncCallback(taskId, env, callback, [data]);
     try {
       const req = protocol.request(url, options, res => {
         if (res.statusCode !== 200) {
