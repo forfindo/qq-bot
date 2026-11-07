@@ -65,7 +65,7 @@ export type ExtendedEvent<T extends EventType = EventType, D extends string = st
   T,
   D
 > & {
-  self?: Self;
+  self: Self;
   [key: string]: unknown;
 };
 

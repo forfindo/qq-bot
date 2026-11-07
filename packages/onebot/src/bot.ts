@@ -2,44 +2,17 @@ import type { Status, VersionInfo } from './connect/status';
 import type { MaybePromise } from './connect/utility';
 import type { ExtendedEvent, OneBotEvent, RequestEvent } from './event';
 import type {
-  GetFileFragmentedParams,
+  FileTransferType,
   GetFileFragmentedResult,
-  GetFileParams,
   GetFileResult,
-  UploadFileFragmentedParams,
   UploadFileFragmentedResult,
-  UploadFileParams,
   UploadFileResult
 } from './file/actions';
-import type {
-  ChannelInfo,
-  ChannelMemberInfo,
-  GetChannelInfoParams,
-  GetChannelListParams,
-  GetChannelMemberInfoParams,
-  GetChannelMemberListParams,
-  GetGuildInfoParams,
-  GetGuildMemberInfoParams,
-  GetGuildMemberListParams,
-  GuildInfo,
-  GuildMemberInfo,
-  LeaveChannelParams,
-  LeaveGuildParams,
-  SetChannelNameParams,
-  SetGuildNameParams
-} from './guild/actions';
-import type {
-  GetGroupInfoParams,
-  GetGroupMemberInfoParams,
-  GetGroupMemberListParams,
-  GroupInfo,
-  GroupMemberInfo,
-  LeaveGroupParams,
-  SetGroupNameParams
-} from './group/actions';
-import type { DeleteMessageParams, SendMessageParams, SendMessageResult } from './message/actions';
-import type { GetLatestEventsParams } from './meta/actions';
-import type { FriendInfo, GetUserInfoParams, UserInfo } from './user/actions';
+import type { ChannelInfo, ChannelMemberInfo, GuildInfo, GuildMemberInfo } from './guild/actions';
+import type { GroupInfo, GroupMemberInfo } from './group/actions';
+import type { SendMessageResult } from './message/actions';
+import type { Bytes, Message } from './message/type';
+import type { FriendInfo, UserInfo } from './user/actions';
 import type { MessageEvent } from './event';
 import type { MetaEvent } from './meta/events';
 
@@ -52,24 +25,35 @@ interface ExtensionAction {
  * OneBot 应用端机器人
  */
 interface StandardBot {
+  /** 机器人自身信息 **/
+  selfInfo?: UserInfo;
+
+  /** 日志 **/
+  logger?: {
+    debug(...args: unknown[]): void;
+    info(...args: unknown[]): void;
+    warn(...args: unknown[]): void;
+    error(...args: unknown[]): void;
+  };
+
   /** 消息事件 **/
-  on(name: 'message', event: MessageEvent | ExtendedEvent<'message'>): void;
+  on?(name: 'message', listener: (e: MessageEvent | ExtendedEvent<'message'>) => void): void;
 
   /** 请求事件 **/
-  on(name: 'request', event: RequestEvent | ExtendedEvent<'request'>): void;
+  on?(name: 'request', listener: (e: RequestEvent | ExtendedEvent<'request'>) => void): void;
 
   /** 通知事件 **/
-  on(name: 'notice', event: RequestEvent | ExtendedEvent<'notice'>): void;
+  on?(name: 'notice', listener: (e: RequestEvent | ExtendedEvent<'notice'>) => void): void;
 
   /** 元事件 **/
-  on(name: 'mete', event: MetaEvent | ExtendedEvent<'meta'>): void;
+  on?(name: 'mete', listener: (e: MetaEvent | ExtendedEvent<'meta'>) => void): void;
 
   // -------------------------------------------------------------------------
   // 元动作
   // -------------------------------------------------------------------------
 
   /** 获取最新事件列表 */
-  getLatestEvents(params?: GetLatestEventsParams): MaybePromise<OneBotEvent[]>;
+  getLatestEvents(limit?: number, timeout?: number): MaybePromise<OneBotEvent[]>;
 
   /** 获取支持的动作列表 */
   getSupportedActions(): MaybePromise<string[]>;
@@ -84,11 +68,37 @@ interface StandardBot {
   // 消息动作
   // -------------------------------------------------------------------------
 
-  /** 发送消息 */
-  sendMessage(params: SendMessageParams): MaybePromise<SendMessageResult>;
+  /** 发送私聊消息 */
+  sendMessage(
+    detail_type: 'private',
+    user_id: string,
+    message: Message
+  ): MaybePromise<SendMessageResult>;
+
+  /** 发送群聊消息 */
+  sendMessage(
+    detail_type: 'group',
+    group_id: string,
+    message: Message
+  ): MaybePromise<SendMessageResult>;
+
+  /** 发送频道消息 */
+  sendMessage(
+    detail_type: 'channel',
+    guild_id: string,
+    channel_id: string,
+    message: Message
+  ): MaybePromise<SendMessageResult>;
+
+  /** 发送扩展类型消息 */
+  sendMessage(
+    detail_type: string,
+    message: Message,
+    ...extensions: unknown[]
+  ): MaybePromise<SendMessageResult>;
 
   /** 撤回消息 */
-  deleteMessage(params: DeleteMessageParams): MaybePromise<null>;
+  deleteMessage(message_id: string): MaybePromise<null>;
 
   // -------------------------------------------------------------------------
   // 用户动作
@@ -98,7 +108,7 @@ interface StandardBot {
   getSelfInfo(): MaybePromise<UserInfo>;
 
   /** 获取用户信息 */
-  getUserInfo(params: GetUserInfoParams): MaybePromise<FriendInfo>;
+  getUserInfo(user_id: string): MaybePromise<FriendInfo>;
 
   /** 获取好友列表 */
   getFriendList(): MaybePromise<FriendInfo[]>;
@@ -108,84 +118,145 @@ interface StandardBot {
   // -------------------------------------------------------------------------
 
   /** 获取群信息 */
-  getGroupInfo(params: GetGroupInfoParams): MaybePromise<GroupInfo>;
+  getGroupInfo(group_id: string): MaybePromise<GroupInfo>;
 
   /** 获取群列表 */
   getGroupList(): MaybePromise<GroupInfo[]>;
 
   /** 获取群成员信息 */
-  getGroupMemberInfo(params: GetGroupMemberInfoParams): MaybePromise<GroupMemberInfo>;
+  getGroupMemberInfo(group_id: string, user_id: string): MaybePromise<GroupMemberInfo>;
 
   /** 获取群成员列表 */
-  getGroupMemberList(params: GetGroupMemberListParams): MaybePromise<GroupMemberInfo[]>;
+  getGroupMemberList(group_id: string): MaybePromise<GroupMemberInfo[]>;
 
   /** 设置群名称 */
-  setGroupName(params: SetGroupNameParams): MaybePromise<null>;
+  setGroupName(group_id: string, group_name: string): MaybePromise<null>;
 
   /** 退出群 */
-  leaveGroup(params: LeaveGroupParams): MaybePromise<null>;
+  leaveGroup(group_id: string): MaybePromise<null>;
 
   // -------------------------------------------------------------------------
   // 群组动作
   // -------------------------------------------------------------------------
 
   /** 获取群组信息 */
-  getGuildInfo(params: GetGuildInfoParams): MaybePromise<GuildInfo>;
+  getGuildInfo(guild_id: string): MaybePromise<GuildInfo>;
 
   /** 获取群组列表 */
   getGuildList(): MaybePromise<GuildInfo[]>;
 
   /** 设置群组名称 */
-  setGuildName(params: SetGuildNameParams): MaybePromise<null>;
+  setGuildName(guild_id: string, guild_name: string): MaybePromise<null>;
 
   /** 获取群组成员信息 */
-  getGuildMemberInfo(params: GetGuildMemberInfoParams): MaybePromise<GuildMemberInfo>;
+  getGuildMemberInfo(guild_id: string, user_id: string): MaybePromise<GuildMemberInfo>;
 
   /** 获取群组成员列表 */
-  getGuildMemberList(params: GetGuildMemberListParams): MaybePromise<GuildMemberInfo[]>;
+  getGuildMemberList(guild_id: string): MaybePromise<GuildMemberInfo[]>;
 
   /** 退出群组 */
-  leaveGuild(params: LeaveGuildParams): MaybePromise<null>;
+  leaveGuild(guild_id: string): MaybePromise<null>;
 
   // -------------------------------------------------------------------------
   // 频道动作
   // -------------------------------------------------------------------------
 
   /** 获取频道信息 */
-  getChannelInfo(params: GetChannelInfoParams): MaybePromise<ChannelInfo>;
+  getChannelInfo(guild_id: string, channel_id: string): MaybePromise<ChannelInfo>;
 
   /** 获取频道列表 */
-  getChannelList(params: GetChannelListParams): MaybePromise<ChannelInfo[]>;
+  getChannelList(guild_id: string, joined_only?: boolean): MaybePromise<ChannelInfo[]>;
 
   /** 设置频道名称 */
-  setChannelName(params: SetChannelNameParams): MaybePromise<null>;
+  setChannelName(guild_id: string, channel_id: string, channel_name: string): MaybePromise<null>;
 
   /** 获取频道成员信息 */
-  getChannelMemberInfo(params: GetChannelMemberInfoParams): MaybePromise<ChannelMemberInfo>;
+  getChannelMemberInfo(
+    guild_id: string,
+    channel_id: string,
+    user_id: string
+  ): MaybePromise<ChannelMemberInfo>;
 
   /** 获取频道成员列表 */
-  getChannelMemberList(params: GetChannelMemberListParams): MaybePromise<ChannelMemberInfo[]>;
+  getChannelMemberList(guild_id: string, channel_id: string): MaybePromise<ChannelMemberInfo[]>;
 
   /** 退出频道 */
-  leaveChannel(params: LeaveChannelParams): MaybePromise<null>;
+  leaveChannel(guild_id: string, channel_id: string): MaybePromise<null>;
 
   // -------------------------------------------------------------------------
   // 文件动作
   // -------------------------------------------------------------------------
 
-  /** 上传文件 */
-  uploadFile(params: UploadFileParams): MaybePromise<UploadFileResult>;
+  /** 通过 URL 上传文件 */
+  uploadFile(
+    type: 'url',
+    name: string,
+    url: string,
+    headers?: Record<string, string>,
+    sha256?: string
+  ): MaybePromise<UploadFileResult>;
 
-  /** 分片上传文件 */
+  /** 通过路径上传文件 */
+  uploadFile(
+    type: 'path',
+    name: string,
+    path: string,
+    sha256?: string
+  ): MaybePromise<UploadFileResult>;
+
+  /** 直接上传文件数据 */
+  uploadFile(
+    type: 'data',
+    name: string,
+    data: Bytes,
+    sha256?: string
+  ): MaybePromise<UploadFileResult>;
+
+  /** 以扩展方式上传文件 */
+  uploadFile(
+    type: string,
+    name: string,
+    sha256?: string,
+    ...extensions: unknown[]
+  ): MaybePromise<UploadFileResult>;
+
+  /** 分片上传文件（准备阶段） */
   uploadFileFragmented(
-    params: UploadFileFragmentedParams
+    stage: 'prepare',
+    name: string,
+    total_size: number
+  ): MaybePromise<UploadFileFragmentedResult>;
+
+  /** 分片上传文件（传输阶段） */
+  uploadFileFragmented(
+    stage: 'transfer',
+    file_id: string,
+    offset: number,
+    data: Bytes
+  ): MaybePromise<UploadFileFragmentedResult>;
+
+  /** 分片上传文件（结束阶段） */
+  uploadFileFragmented(
+    stage: 'finish',
+    file_id: string,
+    sha256: string
   ): MaybePromise<UploadFileFragmentedResult>;
 
   /** 获取文件 */
-  getFile(params: GetFileParams): MaybePromise<GetFileResult>;
+  getFile(file_id: string, type: FileTransferType): MaybePromise<GetFileResult>;
 
-  /** 分片获取文件 */
-  getFileFragmented(params: GetFileFragmentedParams): MaybePromise<GetFileFragmentedResult>;
+  /** 分片获取文件（准备阶段） */
+  getFileFragmented(stage: 'prepare', file_id: string): MaybePromise<GetFileFragmentedResult>;
+
+  /** 分片获取文件（传输阶段） */
+  getFileFragmented(
+    stage: 'transfer',
+    file_id: string,
+    offset: number,
+    size: number
+  ): MaybePromise<GetFileFragmentedResult>;
 }
 
 export type Bot = StandardBot & ExtensionAction;
+
+export type StandardAPI = Exclude<keyof StandardBot, 'on'>;

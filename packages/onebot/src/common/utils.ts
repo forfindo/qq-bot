@@ -37,8 +37,14 @@ function kvObj(obj: Record<string, unknown>, prefix: string = '') {
   return result;
 }
 
-export function toCQCode(messages: AnyMessageSegment[]): string {
+export function toCQCode(message: AnyMessageSegment): string;
+export function toCQCode(messages: AnyMessageSegment[]): string;
+
+export function toCQCode(messages: AnyMessageSegment | AnyMessageSegment[]): string {
   let result = '';
+  if (!Array.isArray(messages)) {
+    messages = [messages];
+  }
   messages.forEach(item => {
     const segment: string[] = [];
     segment.push(`CQ:${item.type}`);
