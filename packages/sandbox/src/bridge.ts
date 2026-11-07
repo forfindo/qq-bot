@@ -73,7 +73,7 @@ interface AsyncTaskInfo {
 interface AsyncQueueState {
   start_moment: number;
   tasks: Map<unknown, AsyncTaskInfo>;
-  timer_counts: Map<string, number>;
+  timer_counts: Map<string, { cnt: number; active: number }>;
   active_timers: number;
 }
 
@@ -92,14 +92,8 @@ let timer_seq = 0;
 let active_timer_total = 0;
 const UNTRACKED_TASK = Symbol('untracked-task');
 
-const limitError = (message: string) => {
-  const err = new Error(message) as Error & { sandboxVisible?: boolean };
-  err.sandboxVisible = true;
-  return err;
-};
-
 const getQueueKey = (data: MessageEvent | NoticeEvent | RequestEvent) => {
-  return [data.self.user_id, data.group_id, data.user_id].filter(Boolean).join('-');
+  return [data.self?.user_id, data.group_id, data.user_id].filter(Boolean).join('-');
 };
 
 const getEventId = (data: MessageEvent | NoticeEvent | RequestEvent) => {
@@ -141,11 +135,9 @@ const releaseTimer = (id: number) => {
     if (state.active_timers > 0) {
       state.active_timers -= 1;
     }
-    const cnt = state.timer_counts.get(entry.eventId) || 0;
-    if (cnt <= 1) {
-      state.timer_counts.delete(entry.eventId);
-    } else {
-      state.timer_counts.set(entry.eventId, cnt - 1);
+    const info = state.timer_counts.get(entry.eventId);
+    if (info && info.active > 0) {
+      info.active -= 1;
     }
   }
   clearTimeout(entry.handle);
@@ -181,19 +173,27 @@ const asyncCallback = (
   sandbox.setEnv(env);
   const function_name = 'tmp_' + Date.now();
   sandbox.getContext()[function_name] = callback;
+  let argv_name: string | undefined;
   try {
     if (argv === void 0) {
       sandbox.exec(`this.${function_name}.apply(this)`);
     } else {
-      const argv_name = 'tmp_argv_' + Date.now();
+      argv_name = 'tmp_argv_' + Date.now();
       sandbox.getContext()[argv_name] = argv;
       sandbox.exec(`this.${function_name}.apply(this, this.${argv_name})`);
-      sandbox.exec(`delete this.${argv_name}`);
     }
   } catch (_) {
     /* empty */
+  } finally {
+    const cleanup = argv_name
+      ? `delete this.${function_name};delete this.${argv_name}`
+      : `delete this.${function_name}`;
+    try {
+      sandbox.exec(cleanup);
+    } catch (_) {
+      /* empty */
+    }
   }
-  sandbox.exec(`delete this.${function_name}`);
 };
 
 const checkAndAddAsyncQueue = (o: unknown) => {
@@ -426,7 +426,7 @@ const onmessage = async (data: MessageEvent | NoticeEvent | RequestEvent) => {
 
 sandbox.include(
   'setTimeout',
-  function (fn: (...args: unknown[]) => void, timeout = 5000, argv?: unknown[]) {
+  function (fn: (...args: unknown[]) => void, timeout = 5000, ...args: unknown[]) {
     if (typeof fn !== 'function') {
       throw new TypeError('fn(第一个参数)必须是函数。');
     }
@@ -440,26 +440,36 @@ sandbox.include(
     const env = sandbox.getContext().data as MessageEvent;
     const { key, state } = getQueueState(env);
     const eventId = getEventId(env);
-    const cnt = state.timer_counts.get(eventId) || 0;
-    if (cnt >= 3) {
-      throw limitError('setTimeout调用次数达到上限');
+    for (const [id, info] of state.timer_counts) {
+      if (id !== eventId && info.active === 0) {
+        state.timer_counts.delete(id);
+      }
+    }
+    const info = state.timer_counts.get(eventId) || { cnt: 0, active: 0 };
+    if (info.cnt >= 3) {
+      throw new Error('setTimeout调用次数达到上限');
     }
     if (state.active_timers >= MAX_QUEUE_TIMERS) {
-      throw limitError('当前会话的活跃setTimeout数量达到上限');
+      throw new Error('当前会话的活跃setTimeout数量达到上限');
     }
     if (active_timer_total >= MAX_ACTIVE_TIMERS) {
-      throw limitError('活跃setTimeout总数达到上限');
+      throw new Error('活跃setTimeout总数达到上限');
     }
     checkFrequency();
     const timerId = ++timer_seq;
     // @ts-ignore
     const cb = () => {
-      releaseTimer(timerId);
-      asyncCallback(UNTRACKED_TASK, env, fn, argv);
+      try {
+        asyncCallback(UNTRACKED_TASK, env, fn, args.length ? args : void 0);
+      } finally {
+        releaseTimer(timerId);
+      }
     };
     const handle = setTimeout(cb, timeout);
     timers.set(timerId, { handle, key, eventId });
-    state.timer_counts.set(eventId, cnt + 1);
+    state.timer_counts.set(eventId, info);
+    info.cnt += 1;
+    info.active += 1;
     state.active_timers += 1;
     active_timer_total += 1;
     return timerId;

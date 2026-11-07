@@ -103,9 +103,9 @@ VM 上下文 (sandbox.ts + sandbox.code.js)
 
 - 返回自增数字 id，不再向沙箱暴露宿主 `Timeout` 对象；`clearTimeout` 接收这个 id；
 - 延迟必须在 5000ms 到 `2^31 - 1` 之间；
-- 同一事件同时存活的 timer 最多 3 个，超限抛出 `setTimeout调用次数达到上限`；
+- 同一条消息（事件）累计最多调度 3 个 timer，包含回调中再次调度以及被 `clearTimeout` 的调用，超限抛出 `setTimeout调用次数达到上限`，用于防止单条消息无限递归调度；
 - 每个会话最多 64 个、全局最多 1024 个活跃 timer；
-- timer 触发或被 `clearTimeout` 后释放计数，供后续调度使用。
+- timer 触发或被 `clearTimeout` 只释放「活跃」计数；「累计调用」计数在该事件生命周期内不会重置，直到同一会话出现新事件才清理，因此每个事件最多调度 3 次。
 
 此外还有：
 

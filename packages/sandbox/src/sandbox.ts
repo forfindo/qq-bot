@@ -276,15 +276,12 @@ const run = (code: string) => {
     }
     return res;
   } catch (e) {
-    if (!(e instanceof Error)) {
-      return `unknown Error: ${String(e)}`;
-    }
     if (debug) {
+      if (!(e instanceof Error)) {
+        return `unknown Error: ${String(e)}`;
+      }
       const line = e.stack?.split('\n')[0]?.split(':').pop();
       return e.name + ': ' + e.message + ' (line: ' + line ? parseInt(line!) : 'unknown' + ')';
-    }
-    if ((e as Error & { sandboxVisible?: boolean }).sandboxVisible) {
-      return e.name + ': ' + e.message;
     }
   }
 };
