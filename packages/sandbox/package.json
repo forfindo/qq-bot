@@ -1,12 +1,13 @@
 {
   "name": "@xopenbot/sandbox",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "",
   "main": "dist/index.js",
   "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "tsc && node --input-type=module -e \"import fs from 'node:fs'; fs.copyFileSync('src/sandbox.code.js','dist/sandbox.code.js')\"",
+    "tarball": "pnpm build & pnpm pack",
     "prepublishOnly": "pnpm build"
   },
   "keywords": [],

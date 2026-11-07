@@ -17,7 +17,7 @@ if (!fs.existsSync(dataPath)) {
 let context: {
   isProtected?: (key: string) => boolean;
   isMaster?: () => boolean;
-  recordSetHistory?: (key: string) => void;
+  record_set_history?: (key: string) => void;
   set_history_allowed?: boolean;
   data?: MessageEvent | NoticeEvent | RequestEvent;
   [key: string]: unknown;
@@ -48,9 +48,9 @@ context = new Proxy(context, {
     if (o.isProtected?.(k) && !o.isMaster?.()) {
       return false;
     }
-    if (typeof o.recordSetHistory === 'function') {
+    if (typeof o.record_set_history === 'function') {
       o.set_history_allowed = true;
-      o.recordSetHistory(k);
+      o.record_set_history(k);
       o.set_history_allowed = false;
     }
     return Reflect.set(o, k, v);
@@ -181,31 +181,46 @@ initFinished = true;
 
 vm.runInContext(`try{this.afterInit()}catch(e){}`, context);
 
+// 外部导入模块
+const outerImport = [
+  'setTimeout',
+  'clearTimeout',
+  'fetch',
+  'run',
+  'crypto',
+  'path',
+  'zip',
+  'unzip',
+  'os',
+  'Buffer',
+  '$',
+  'error403'
+];
+
 //定时持久化context(60分钟)
 let fn: Record<string, unknown>;
 const saveFunctions = (o: Record<string, unknown>, mp: Record<string, unknown>) => {
   for (const k in o) {
+    if ((internalProperties.includes(k) || outerImport.includes(k)) && o[k] === context[k]) {
+      continue;
+    }
     if (typeof o[k] === 'function') {
       mp[k] = o[k].toString();
     } else if (typeof o[k] === 'object' && o[k] !== null) {
-      if (o === context) {
-        try {
-          if (JSON.stringify(o[k]).length > 10485760) {
-            o[k] = void 0;
-          }
-        } catch (_) {
-          o[k] = void 0;
-        }
-      }
-      if (o[k] === void 0) {
-        continue;
-      }
       mp[k] = {};
       saveFunctions(o[k] as Record<string, unknown>, mp[k] as Record<string, unknown>);
     } else if (typeof o[k] === 'bigint') {
       o[k] = Number(o[k]);
     }
   }
+};
+const stringifyContext = () => {
+  return JSON.stringify(context, (key, value: unknown) => {
+    if (outerImport.includes(key) && context[key] === value) {
+      return void 0;
+    }
+    return value;
+  });
 };
 const beforeSaveContext = () => {
   setEnv();
@@ -223,7 +238,7 @@ process.on('exit', code => {
   }
   beforeSaveContext();
   fs.writeFileSync(fnFile, zlib.brotliCompressSync(JSON.stringify(fn), brotliOptions));
-  fs.writeFileSync(contextFile, zlib.brotliCompressSync(JSON.stringify(context), brotliOptions));
+  fs.writeFileSync(contextFile, zlib.brotliCompressSync(stringifyContext(), brotliOptions));
 });
 
 const saveCtx = () => {
@@ -233,7 +248,7 @@ const saveCtx = () => {
       fs.writeFile(fnFile, res, () => {});
     }
   });
-  zlib.brotliCompress(JSON.stringify(context), brotliOptions, (err, res) => {
+  zlib.brotliCompress(stringifyContext(), brotliOptions, (err, res) => {
     if (res) {
       fs.writeFile(contextFile, res, () => {});
     }
@@ -269,7 +284,6 @@ const run = (code: string) => {
       (res as Promise<unknown>).catch(() => {});
       res = void 0;
     }
-    context._current_echo = res;
     const res2: unknown = vm.runInContext(`this.afterExec()`, context, { timeout: timeout });
     if (typeof res2 !== 'undefined') {
       res = res2;
@@ -278,10 +292,17 @@ const run = (code: string) => {
   } catch (e) {
     if (debug) {
       if (!(e instanceof Error)) {
-        return `unknown Error: ${String(e)}`;
+        return `${String(e)}`;
       }
       const line = e.stack?.split('\n')[0]?.split(':').pop();
-      return e.name + ': ' + e.message + ' (line: ' + line ? parseInt(line!) : 'unknown' + ')';
+      return (
+        (e.name || 'unknown') +
+        ': ' +
+        e.message +
+        ' (line: ' +
+        (line ? parseInt(line) : 'unknown') +
+        ')'
+      );
     }
   }
 };

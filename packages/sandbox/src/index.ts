@@ -1,7 +1,7 @@
 import cp from 'child_process';
 import path from 'path';
 import fs from 'fs';
-import type { Bot, MessageEvent, NoticeEvent, RequestEvent } from '@xopenbot/onebot';
+import type { Bot, MessageEvent, NoticeEvent, RequestEvent, Message } from '@xopenbot/onebot';
 
 interface CallApiRequest {
   uin: string;
@@ -13,7 +13,7 @@ interface CallApiRequest {
 interface ExecResponse {
   type: 'exec/result';
   id: string;
-  data: string;
+  data: Message;
 }
 
 export interface Config {
@@ -32,6 +32,7 @@ type AnyAction = (...params: unknown[]) => Promise<unknown>;
 
 const bots = new Map<string, Bot>();
 const __dirname = import.meta.dirname;
+const resolveMap = new Map<string, (result: Message) => void>();
 let worker: cp.ChildProcess | null = null;
 let initialized = false;
 
@@ -41,12 +42,16 @@ const startWorker = () => {
   worker.on('error', err => {
     fs.appendFile('err.log', Date() + ' ' + err.stack + '\n', () => {});
   });
-  worker.on('exit', () => {
+  worker.on('exit', (code: number) => {
+    resolveMap.forEach(resolve => resolve(`退出码：${code}`));
+    resolveMap.clear();
     console.log(Date(), 'sandbox停止');
     startWorker();
   });
   worker.on('message', (value: WorkEvent) => {
     if (isExecResponse(value)) {
+      resolveMap.get(value.id)?.(value.data);
+      resolveMap.delete(value.id);
       return;
     }
     const bot = bots.get(value.uin);
@@ -103,6 +108,16 @@ const normalize = (
       result[key] = value;
     }
   }
+  /* eslint-disable */
+  if (result.user_id) {
+    result.user_id = String(result.user_id);
+  }
+  if (result.group_id) {
+    result.group_id = String(result.group_id);
+  }
+  // @ts-ignore
+  result.self?.user_id && (result.self.user_id = String(result.self.user_id));
+  /* eslint-enabled */
   return result as unknown as MessageEvent | NoticeEvent | RequestEvent;
 };
 
@@ -136,11 +151,15 @@ const saveCtx = () => {
 };
 
 const exec = (data: MessageEvent | NoticeEvent | RequestEvent) => {
-  if (!bots.get(data.self.user_id)) {
-    throw new Error(`${data.self.user_id} 未初始化。请先调用init方法初始化`);
-  }
-  data = normalize(data);
-  worker?.send(data);
+  return new Promise<Message>((resolve, reject) => {
+    if (!bots.get(data.self.user_id)) {
+      reject(new Error(`${data.self.user_id} 未初始化。请先调用init方法初始化`));
+      return;
+    }
+    data = normalize(data);
+    resolveMap.set(data.id, resolve);
+    worker?.send(data);
+  });
 };
 
 startWorker();

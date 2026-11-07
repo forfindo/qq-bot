@@ -16,7 +16,7 @@ import isValidUTF8 from 'utf-8-validate';
 import crypto from 'crypto';
 import path from 'path';
 import type { OutgoingHttpHeaders } from 'node:http';
-import * as os from 'node:os';
+import os from 'os';
 import type { Config } from './index.js';
 
 export interface SaveContextEvent {
@@ -314,19 +314,19 @@ const init = async (data: MessageEvent | NoticeEvent | RequestEvent, gid?: strin
   if (!bot.groups.size) {
     sandbox.setEnv(data);
     const groups = (await callApi('getGroupList', [], false)).data as GroupInfo[];
-    bot.groups = new Map(groups.map(g => [g.group_id, g]));
+    bot.groups = new Map(groups.map(g => [String(g.group_id), g]));
   }
   const groups = gid
     ? [(await callApi('getGroupInfo', [gid], false)).data as GroupInfo]
     : bot.groups.values();
   sandbox.setEnv(data);
   for (const ginfo of groups) {
-    const membersRsp = (await callApi('getChannelMemberList', [gid], false))
+    const membersRsp = (await callApi('getGroupMemberList', [gid], false))
       .data as GroupMemberInfo[];
     if (!membersRsp?.length) {
       continue;
     }
-    const members = new Map(membersRsp.map(m => [m.user_id, m]));
+    const members = new Map(membersRsp.map(m => [String(m.user_id), m]));
     ginfo.members = {};
     for (const [uid, minfo] of members) {
       (ginfo.members as Record<string, GroupMemberInfo>)[uid] = minfo;
@@ -334,8 +334,8 @@ const init = async (data: MessageEvent | NoticeEvent | RequestEvent, gid?: strin
     }
     Object.freeze(ginfo.members);
     Object.freeze(ginfo);
-    if (ginfo.group_id === gid) {
-      bot.groups.set(gid, ginfo);
+    if (ginfo.group_id == gid) {
+      bot.groups.set(String(gid), ginfo);
     }
   }
 };
@@ -355,7 +355,7 @@ const onmessage = async (data: MessageEvent | NoticeEvent | RequestEvent) => {
       if (v.type === 'text') {
         message += v.data.text;
       } else if (v.type === 'mention') {
-        if (v.data.user_id === data.self.user_id && !message) {
+        if (v.data.user_id == data.self.user_id && !message) {
           continue;
         }
         message += `'[CQ:mention,user_id=${v.data.user_id}]'`;
@@ -381,12 +381,12 @@ const onmessage = async (data: MessageEvent | NoticeEvent | RequestEvent) => {
     ) {
       message = toStr(message);
     }
+    let echo = true;
     try {
       let res = sandbox.run(message);
       if (typeof res === 'string' && res.includes('`') && /\[CQ:[^\]]+\]/.test(res)) {
         res = sandbox.run(res);
       }
-      let echo = true;
       if (message.match(/^['"`]\[CQ:mention,user_id=\d+\]['"`]$/)) {
         echo = false;
       }
@@ -404,21 +404,21 @@ const onmessage = async (data: MessageEvent | NoticeEvent | RequestEvent) => {
         res = fromCQCode(res as string);
         process.send!({
           type: 'exec/result',
-          id: data['message_id'],
+          id: data.id,
           data: res
         });
       } else {
         process.send!({
           type: 'exec/result',
-          id: data['message_id'],
+          id: data.id,
           data: ''
         });
       }
     } catch (err) {
       process.send!({
         type: 'exec/result',
-        id: data['message_id'],
-        data: `ERROR：${String(err)}`
+        id: data.id,
+        data: echo ? `${String(err)}` : ''
       });
     }
   } else {

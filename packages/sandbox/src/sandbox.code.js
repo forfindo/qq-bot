@@ -50,7 +50,8 @@ const error403 = (this.error403 = new Error('403 forbidden'));
 this.database = this.database && typeof this.database === 'object' ? this.database : {};
 this.database = new Proxy(this.database, {
   get: (o, k) => {
-    if (parseInt(k) !== this.data.group_id && !this.isMaster()) throw error403;
+    if (typeof k === 'symbol' || k === 'toJSON') return Reflect.get(o, k);
+    if (k !== this.data.group_id && !this.isMaster()) throw error403;
     if (!o.hasOwnProperty(k)) o[k] = {};
     return o[k];
   },
@@ -117,7 +118,7 @@ Object.defineProperty(this, 'set_history', {
   writable: false,
   value: this.set_history
 });
-Object.defineProperty(this, 'recordSetHistory', {
+Object.defineProperty(this, 'record_set_history', {
   configurable: false,
   enumerable: false,
   writable: false,
@@ -125,7 +126,7 @@ Object.defineProperty(this, 'recordSetHistory', {
     if (k !== 'data' && this.data.user_id) {
       try {
         this.set_history[k] = {
-          qq: this.data.user_id,
+          uid: this.data.user_id,
           name: this.data.sender?.nickname || 'unknown',
           group: this.data.group_id,
           gname: this.data.group_name || 'unknown',
@@ -137,7 +138,7 @@ Object.defineProperty(this, 'recordSetHistory', {
   }
 });
 
-//主人qq 必须是包含qq号的字符串
+//必须是字符串
 if (typeof this.master !== 'string') this.master = '';
 
 Object.defineProperty(this, 'isMaster', {
@@ -145,7 +146,7 @@ Object.defineProperty(this, 'isMaster', {
   enumerable: false,
   writable: false,
   value: () => {
-    return this.data.user_id && this.master.includes(this.data.user_id);
+    return !this.data.user_id || (this.data.user_id && this.master.includes(this.data.user_id));
   }
 });
 const isMaster = this.isMaster;
@@ -174,10 +175,9 @@ if (typeof this.beforeApiCalled !== 'function') {
 // 受保护属性只有主人可以设置和删除
 // 默认的受保护属性为 master,beforeExec,afterExec,onEvents 四个
 // 受保护属性不能是引用类型(对象&数组)，只能是基础类型或函数，否则无法被保护
-this.protected_properties =
-  this.protected_properties && typeof this.protected_properties === 'object'
-    ? this.protected_properties
-    : ['master', 'afterInit', 'beforeExec', 'afterExec', 'onEvents', 'beforeApiCalled'];
+this.protected_properties = Array.isArray(this.protected_properties)
+  ? this.protected_properties
+  : ['master', 'afterInit', 'beforeExec', 'afterExec', 'onEvents', 'beforeApiCalled'];
 this.protected_properties = new Proxy(this.protected_properties, {
   set: (o, k, v) => {
     if (this.isMaster()) return Reflect.set(o, k, v);
