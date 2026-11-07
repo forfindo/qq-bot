@@ -1,0 +1,26 @@
+{
+  "name": "@xopenbot/sandbox",
+  "version": "0.0.1",
+  "description": "",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "tsc && node --input-type=module -e \"import fs from 'node:fs'; fs.copyFileSync('src/sandbox.code.js','dist/sandbox.code.js')\""
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.30.3",
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@xopenbot/onebot": "workspace:*",
+    "string.ify": "1.0.64",
+    "utf-8-validate": "6.0.6"
+  },
+  "devDependencies": {
+    "@types/utf-8-validate": "5.0.2"
+  }
+}
