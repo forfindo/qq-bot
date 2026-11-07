@@ -88,21 +88,27 @@ VM 上下文 (sandbox.ts + sandbox.code.js)
 - 相邻调用间隔都在 300ms 内时计数累加，最多 3 次，第 4 次抛出 `调用频率太快。`；
 - 距离上次调用超过 300ms 时桶被删除，计数清零。
 
-#### 递归检测：`checkAndAddAsyncQueue`
+#### 异步任务递归检测：`checkAndAddAsyncQueue`
 
-`bridge.ts` 用于防止用户通过回调反复发起异步任务形成「无限递归」。任务按 `self.user_id`、`group_id`、`user_id` 组成的队列隔离，并记录每个任务的开始/结束时间：
+`bridge.ts` 用于防止用户通过回调反复发起异步任务形成「无限递归」。任务按 `self.user_id`、`group_id`、`user_id` 组成的队列隔离，并记录任务的结束时间：
 
-- `setTimeout`：
-  - 根据事件 `id` / `time` 判断是否属于同一事件，同一事件最多调用 3 次，超过抛出 `setTimeout调用次数达到上限`；
-  - 若新事件的 `time` 小于当前记录，抛出 `新的setTimeout启动被迫停止`。
-- `fetch` 等其它异步任务：
-  - 登记任务时写入 `start_time`，回调执行完成后由 `asyncCallback` 写入 `end_time`；
-  - 已结束超过 500ms 的任务会被清理，仍在进行中的任务会维持队列的 `start_moment`；
-  - 若同一队列连续繁忙超过 60 秒，抛出 `判定为递归调用，中断。` 并重置 `start_moment`。
+- 登记任务时写入一条 `end_time` 为空的记录；
+- 回调执行完成后由 `asyncCallback` 写入 `end_time`；
+- 已结束超过 500ms 的记录会被清理，仍在进行中的任务会维持队列的 `start_moment`；
+- 若同一队列连续繁忙超过 60 秒，抛出 `判定为递归调用，中断。` 并重置 `start_moment`。
+
+#### `setTimeout` 限制
+
+`setTimeout` 不参与上面的繁忙窗口检测，改用独立的任务计数和句柄管理：
+
+- 返回自增数字 id，不再向沙箱暴露宿主 `Timeout` 对象；`clearTimeout` 接收这个 id；
+- 延迟必须在 5000ms 到 `2^31 - 1` 之间；
+- 同一事件同时存活的 timer 最多 3 个，超限抛出 `setTimeout调用次数达到上限`；
+- 每个会话最多 64 个、全局最多 1024 个活跃 timer；
+- timer 触发或被 `clearTimeout` 后释放计数，供后续调度使用。
 
 此外还有：
 
-- `setTimeout` 最小延迟 5000ms；
 - HTTP 响应体限制 500KB，避免内存耗尽；
 - 输出内容经过敏感词过滤。
 
@@ -268,10 +274,13 @@ fetch.post('https://example.com/api', { a: 1 }, res => {
   this.last_response = res;
 });
 
-// 延时任务（最小 5000ms）
-setTimeout(() => {
+// 延时任务（5000ms ~ 2^31-1），返回数字 id
+const timer = setTimeout(() => {
   $.sendGroupMsg(this.data.group_id, 'later');
 }, 5000);
+
+// 需要时用同一个 id 取消
+clearTimeout(timer);
 ```
 
 ### 沙箱内置 API
@@ -282,7 +291,7 @@ setTimeout(() => {
 | --- | --- |
 | `$` | 机器人 API：`sendPrivateMsg`、`sendGroupMsg`、`sendDiscussMsg`、`deleteMsg`、`getGroupInfo`、`ajax`、`get` |
 | `fetch` | HTTP 请求，支持 `fetch.get`、`fetch.post`、`fetch.request` |
-| `setTimeout` / `clearTimeout` | 受限的延时任务 |
+| `setTimeout` / `clearTimeout` | 受限的延时任务；`setTimeout` 返回数字 id，`clearTimeout` 接收该 id |
 | `crypto` | Node `crypto` 模块 |
 | `path` | Node `path` 模块 |
 | `os` | Node `os` 模块 |

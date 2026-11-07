@@ -283,6 +283,9 @@ const run = (code: string) => {
       const line = e.stack?.split('\n')[0]?.split(':').pop();
       return e.name + ': ' + e.message + ' (line: ' + line ? parseInt(line!) : 'unknown' + ')';
     }
+    if ((e as Error & { sandboxVisible?: boolean }).sandboxVisible) {
+      return e.name + ': ' + e.message;
+    }
   }
 };
 

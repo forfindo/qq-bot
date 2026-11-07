@@ -28,13 +28,6 @@ export interface InitEvent {
   value: Config;
 }
 
-interface CalledInfo {
-  cnt: number;
-  event_id: string;
-  t: number;
-  end_time?: number;
-}
-
 type CheckCallApi = { method: StandardAPI; params: unknown[] };
 type CallApiResponse = { echo: string; data: unknown };
 
@@ -74,17 +67,89 @@ const bots = new Map<
 >();
 const buckets: Record<string, { time: number; cnt: number }> = {};
 interface AsyncTaskInfo {
-  start_time: number;
   end_time?: number;
 }
 
 interface AsyncQueueState {
   start_moment: number;
-  called_info?: CalledInfo;
   tasks: Map<unknown, AsyncTaskInfo>;
+  timer_counts: Map<string, number>;
+  active_timers: number;
 }
 
+interface TimerEntry {
+  handle: ReturnType<typeof setTimeout>;
+  key: string;
+  eventId: string;
+}
+
+const TIMEOUT_MAX = 2 ** 31 - 1;
+const MAX_QUEUE_TIMERS = 64;
+const MAX_ACTIVE_TIMERS = 1024;
 const async_queue: Record<string, AsyncQueueState> = {};
+const timers = new Map<number, TimerEntry>();
+let timer_seq = 0;
+let active_timer_total = 0;
+const UNTRACKED_TASK = Symbol('untracked-task');
+
+const limitError = (message: string) => {
+  const err = new Error(message) as Error & { sandboxVisible?: boolean };
+  err.sandboxVisible = true;
+  return err;
+};
+
+const getQueueKey = (data: MessageEvent | NoticeEvent | RequestEvent) => {
+  return [data.self.user_id, data.group_id, data.user_id].filter(Boolean).join('-');
+};
+
+const getEventId = (data: MessageEvent | NoticeEvent | RequestEvent) => {
+  if (typeof data.id === 'string' && data.id) {
+    return data.id;
+  }
+  const messageId = (data as { message_id?: unknown }).message_id;
+  if (typeof messageId === 'string' && messageId) {
+    return messageId;
+  }
+  const time = typeof data.time === 'number' ? data.time : '';
+  return `${data.type}:${data.detail_type}:${time}`;
+};
+
+const getQueueState = (data: MessageEvent | NoticeEvent | RequestEvent) => {
+  const key = getQueueKey(data);
+  let state = async_queue[key];
+  if (!state) {
+    state = {
+      start_moment: 0,
+      tasks: new Map(),
+      timer_counts: new Map(),
+      active_timers: 0
+    };
+    async_queue[key] = state;
+  }
+  return { key, state };
+};
+
+const releaseTimer = (id: number) => {
+  const entry = timers.get(id);
+  if (!entry) {
+    return;
+  }
+  timers.delete(id);
+  active_timer_total -= 1;
+  const state = async_queue[entry.key];
+  if (state) {
+    if (state.active_timers > 0) {
+      state.active_timers -= 1;
+    }
+    const cnt = state.timer_counts.get(entry.eventId) || 0;
+    if (cnt <= 1) {
+      state.timer_counts.delete(entry.eventId);
+    } else {
+      state.timer_counts.set(entry.eventId, cnt - 1);
+    }
+  }
+  clearTimeout(entry.handle);
+};
 
 // 色情敏感词过滤
 const ero =
@@ -107,76 +172,53 @@ const asyncCallback = (
   o: unknown,
   env: MessageEvent | NoticeEvent | RequestEvent,
   callback: (...args: unknown[]) => void,
-  argv: unknown[] = []
+  argv?: unknown[]
 ) => {
-  const key = [env.self.user_id, env.group_id, env.user_id].filter(Boolean).join('-');
-  const task = async_queue[key]?.tasks.get(o);
+  const task = async_queue[getQueueKey(env)]?.tasks.get(o);
   if (task) {
     task.end_time = Date.now();
   }
   sandbox.setEnv(env);
   const function_name = 'tmp_' + Date.now();
-  const argv_name = 'tmp_argv_' + Date.now();
   sandbox.getContext()[function_name] = callback;
-  sandbox.getContext()[argv_name] = argv;
   try {
-    sandbox.exec(`this.${function_name}.apply(this, this.${argv_name})`);
+    if (argv === void 0) {
+      sandbox.exec(`this.${function_name}.apply(this)`);
+    } else {
+      const argv_name = 'tmp_argv_' + Date.now();
+      sandbox.getContext()[argv_name] = argv;
+      sandbox.exec(`this.${function_name}.apply(this, this.${argv_name})`);
+      sandbox.exec(`delete this.${argv_name}`);
+    }
   } catch (_) {
     /* empty */
   }
-  sandbox.exec(`delete this.${function_name};delete this.${argv_name}`);
+  sandbox.exec(`delete this.${function_name}`);
 };
 
-const checkAndAddAsyncQueue = (o: unknown, fn = '') => {
+const checkAndAddAsyncQueue = (o: unknown) => {
   const data = sandbox.getContext().data as MessageEvent;
-  const key = [getSid(), getGid(), data.user_id].filter(Boolean).join('-');
-  let state = async_queue[key];
-  if (!state) {
-    state = { start_moment: 0, tasks: new Map() };
-    async_queue[key] = state;
-  }
-  if (fn === 'setTimeout') {
-    const eventId = data.id;
-    const time = data.time;
-    let cnt = state.called_info?.cnt || 0;
-    let event_id = state.called_info?.event_id || eventId;
-    let t = state.called_info?.t || time;
-    if (eventId !== event_id) {
-      if (time < t) {
-        throw new Error('新的setTimeout启动被迫停止');
-      } else {
-        cnt = 0;
-        event_id = eventId;
-        t = time;
+  const { state } = getQueueState(data);
+  let endless_flag = false;
+  const start_moment = state.start_moment;
+  for (const [taskKey, v] of state.tasks) {
+    if (v.end_time && Date.now() - v.end_time > 500) {
+      state.tasks.delete(taskKey);
+    } else {
+      endless_flag = true;
+      if (start_moment === 0) {
+        state.start_moment = Date.now();
       }
     }
-    if (cnt >= 3) {
-      delete state.called_info;
-      throw new Error('setTimeout调用次数达到上限');
-    }
-    state.called_info = { cnt: cnt + 1, event_id: event_id, t: t };
-  } else {
-    let endless_flag = false;
-    const start_moment = state.start_moment;
-    for (const [taskKey, v] of state.tasks) {
-      if (v.end_time && Date.now() - v.end_time > 500) {
-        state.tasks.delete(taskKey);
-      } else {
-        endless_flag = true;
-        if (start_moment === 0) {
-          state.start_moment = Date.now();
-        }
-      }
-    }
-    if (!endless_flag) {
-      state.start_moment = 0;
-    }
-    if (state.start_moment > 0 && Date.now() - state.start_moment > 60000) {
-      state.start_moment = 0;
-      throw new Error('判定为递归调用，中断。');
-    }
   }
-  state.tasks.set(o, { start_time: Date.now(), end_time: void 0 });
+  if (!endless_flag) {
+    state.start_moment = 0;
+  }
+  if (state.start_moment > 0 && Date.now() - state.start_moment > 60000) {
+    state.start_moment = 0;
+    throw new Error('判定为递归调用，中断。');
+  }
+  state.tasks.set(o, { end_time: void 0 });
 };
 
 /**
@@ -384,24 +426,51 @@ const onmessage = async (data: MessageEvent | NoticeEvent | RequestEvent) => {
 
 sandbox.include(
   'setTimeout',
-  function (fn: (...args: unknown[]) => void, timeout = 5000, argv: unknown[] = []) {
-    checkFrequency();
-    // @ts-ignore
-    checkAndAddAsyncQueue(this, 'setTimeout');
+  function (fn: (...args: unknown[]) => void, timeout = 5000, argv?: unknown[]) {
     if (typeof fn !== 'function') {
       throw new TypeError('fn(第一个参数)必须是函数。');
     }
-    timeout = typeof timeout !== 'number' ? parseInt(timeout) : timeout;
-    if (isNaN(timeout) || timeout < 5000) {
+    timeout = typeof timeout === 'number' ? timeout : Number(timeout);
+    if (!Number.isFinite(timeout) || timeout < 5000) {
       throw new Error('延迟时间不能小于5000毫秒。');
     }
+    if (timeout > TIMEOUT_MAX) {
+      throw new Error(`延迟时间不能大于${TIMEOUT_MAX}毫秒。`);
+    }
     const env = sandbox.getContext().data as MessageEvent;
+    const { key, state } = getQueueState(env);
+    const eventId = getEventId(env);
+    const cnt = state.timer_counts.get(eventId) || 0;
+    if (cnt >= 3) {
+      throw limitError('setTimeout调用次数达到上限');
+    }
+    if (state.active_timers >= MAX_QUEUE_TIMERS) {
+      throw limitError('当前会话的活跃setTimeout数量达到上限');
+    }
+    if (active_timer_total >= MAX_ACTIVE_TIMERS) {
+      throw limitError('活跃setTimeout总数达到上限');
+    }
+    checkFrequency();
+    const timerId = ++timer_seq;
     // @ts-ignore
-    const cb = () => asyncCallback(this, env, fn, argv);
-    return setTimeout(cb, timeout);
+    const cb = () => {
+      releaseTimer(timerId);
+      asyncCallback(UNTRACKED_TASK, env, fn, argv);
+    };
+    const handle = setTimeout(cb, timeout);
+    timers.set(timerId, { handle, key, eventId });
+    state.timer_counts.set(eventId, cnt + 1);
+    state.active_timers += 1;
+    active_timer_total += 1;
+    return timerId;
   }
 );
-sandbox.include('clearTimeout', clearTimeout);
+sandbox.include('clearTimeout', function (id: unknown) {
+  if (typeof id !== 'number') {
+    throw new TypeError('id(第一个参数)必须是数字。');
+  }
+  releaseTimer(id);
+});
 
 const temp = {
   get: function (url: string, callback = () => {}, headers?: http.OutgoingHttpHeaders) {
