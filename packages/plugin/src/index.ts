@@ -5,6 +5,7 @@ export type {
   IPlugin,
   LikeLogger,
   PluginInfo,
+  PluginContext,
   ProcessResult,
   RegistryResult,
   ScheduleTask

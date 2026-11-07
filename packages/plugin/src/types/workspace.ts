@@ -1,5 +1,7 @@
 import type { Part } from '@/types/message-part';
 
+type MaybePromise<T> = T | Promise<T>;
+
 export interface PluginInfo {
   name: string;
   version: string;
@@ -16,7 +18,7 @@ export interface ScheduleTask {
   cron: string;
   name: string;
   /** 返回true成功，false失败 **/
-  task: (fireDate: Date) => boolean | Promise<boolean>;
+  task: (fireDate: Date) => MaybePromise<boolean>;
 }
 
 export interface Command {
@@ -27,23 +29,21 @@ export interface Command {
     input: string,
     ctx: PluginContext,
     args?: string[]
-  ) => Promise<ExecResult | undefined> | ExecResult | undefined;
+  ) => MaybePromise<ExecResult | undefined>;
 }
 
-export type ListenerCallback = (ctx: PluginContext) => void | Promise<void>;
+export type ListenerCallback = (ctx: PluginContext) => MaybePromise<void>;
 
 export interface IPlugin {
   info: PluginInfo;
   /** 插件可以定义init方法返回一些API，这些API会放到每个插件调用时的ctx **/
-  init?: (ctx: PluginContext) => { [key: string]: unknown } | Promise<{ [key: string]: unknown }>;
+  init?: (ctx: PluginContext) => MaybePromise<{ [key: string]: unknown }>;
   /** 命令 **/
-  loadCommand(ctx: PluginContext): Command[] | Promise<Command[]>;
+  loadCommand(ctx: PluginContext): MaybePromise<Command[]>;
   /** 定时任务 **/
-  loadSchedule?(ctx: PluginContext): ScheduleTask[] | Promise<ScheduleTask[]>;
+  loadSchedule?(ctx: PluginContext): MaybePromise<ScheduleTask[]>;
   /** 事件监听 **/
-  loadListener?(
-    ctx: PluginContext
-  ): Record<string, ListenerCallback> | Promise<Record<string, ListenerCallback>>;
+  loadListener?(ctx: PluginContext): MaybePromise<Record<string, ListenerCallback>>;
 }
 
 export interface PluginContext {
